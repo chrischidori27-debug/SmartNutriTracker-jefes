@@ -1,0 +1,94 @@
+@page "/imc"
+@rendermode InteractiveServer
+
+@using SmartNutriTracker.Servicios
+@inject ImcServicio ImcServicio
+
+<PageTitle>Recomendación por IMC | SmartNutriTracker</PageTitle>
+
+<div class="imc-page">
+
+    <span class="imc-tag">HU-24 · MODELO NUTRICIONAL</span>
+    <h1>Recomendación según tu <span>IMC</span></h1>
+    <p class="imc-sub">
+        Ingresa tu peso y talla para recibir una orientación nutricional
+        adecuada a tu perfil.
+    </p>
+
+    <div class="imc-card">
+
+        <div class="imc-field">
+            <label for="peso">Peso (kg)</label>
+            <input id="peso" type="number" step="0.1" min="1" max="500" @bind="peso" />
+        </div>
+
+        <div class="imc-field">
+            <label for="talla">Talla (cm)</label>
+            <input id="talla" type="number" step="0.1" min="50" max="260" @bind="talla" />
+        </div>
+
+        <button class="imc-btn" @onclick="Calcular">Calcular</button>
+
+        @if (!string.IsNullOrEmpty(error))
+        {
+            <p class="imc-error">@error</p>
+        }
+    </div>
+
+    @if (resultado is not null)
+    {
+        <div class="imc-card imc-result">
+
+            <div class="imc-value">
+                <strong>@resultado.Imc.ToString("0.0")</strong>
+                <span>@resultado.NombreCategoria</span>
+            </div>
+
+            <p>@resultado.Resumen</p>
+
+            <ul class="imc-stats">
+                <li>
+                    <small>Ajuste calórico</small>
+                    <b>@FormatearAjuste(resultado.AjusteCaloricoPorcentaje)</b>
+                </li>
+                <li><small>Proteínas</small><b>@resultado.ProteinasPorcentaje%</b></li>
+                <li><small>Carbohidratos</small><b>@resultado.CarbohidratosPorcentaje%</b></li>
+                <li><small>Grasas</small><b>@resultado.GrasasPorcentaje%</b></li>
+            </ul>
+
+            <h3>Consejos</h3>
+            <ul class="imc-tips">
+                @foreach (var consejo in resultado.Consejos)
+                {
+                    <li>@consejo</li>
+                }
+            </ul>
+        </div>
+    }
+
+</div>
+
+@code {
+    private decimal peso;
+    private decimal talla;
+    private string? error;
+    private RecomendacionImc? resultado;
+
+    private void Calcular()
+    {
+        error = null;
+        resultado = null;
+
+        try
+        {
+            resultado = ImcServicio.Recomendar(peso, talla);
+        }
+        catch (ArgumentOutOfRangeException ex)
+        {
+            error = ex.Message.Split('(')[0].Trim();
+        }
+    }
+
+    private static string FormatearAjuste(int porcentaje) =>
+        porcentaje == 0 ? "Mantener" : $"{(porcentaje > 0 ? "+" : "")}{porcentaje}%";
+}

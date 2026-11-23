@@ -1,0 +1,267 @@
+﻿@page "/registro"
+@rendermode InteractiveServer
+
+@using SmartNutriTracker.Servicios
+@inject UsuarioServicio UsuarioServicio
+
+<PageTitle>Crear cuenta | SmartNutriTracker</PageTitle>
+
+<div class="registro-page">
+
+    <div class="registro-container">
+
+        <!-- PANEL IZQUIERDO -->
+        <section class="registro-info">
+
+            <div class="brand">
+                <div class="brand-icon">SN</div>
+                <span>SmartNutriTracker</span>
+            </div>
+
+            <div class="info-content">
+
+                <span class="info-tag">COLEGIO INNOVARE</span>
+
+                <h1>
+                    Tu bienestar comienza con
+                    <span>una buena elección.</span>
+                </h1>
+
+                <p>
+                    Crea tu cuenta y forma parte de una plataforma
+                    diseñada para organizar y consultar información
+                    nutricional de manera sencilla.
+                </p>
+
+                <div class="info-feature">
+                    <span class="feature-number">01</span>
+                    <div>
+                        <strong>Registra tu cuenta</strong>
+                        <small>Completa tus datos personales.</small>
+                    </div>
+                </div>
+
+                <div class="info-feature">
+                    <span class="feature-number">02</span>
+                    <div>
+                        <strong>Selecciona tu perfil</strong>
+                        <small>Accede según tu tipo de usuario.</small>
+                    </div>
+                </div>
+
+                <div class="info-feature">
+                    <span class="feature-number">03</span>
+                    <div>
+                        <strong>Comienza a utilizar la plataforma</strong>
+                        <small>Explora las herramientas disponibles.</small>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="info-footer">
+                SMARTNUTRITRACKER · VERSIÓN 1.0
+            </div>
+
+            <div class="info-decoration"></div>
+            <div class="info-decoration decoration-two"></div>
+
+        </section>
+
+        <!-- FORMULARIO -->
+        <section class="registro-form-panel">
+
+            <div class="mobile-brand">
+                <div class="brand-icon">SN</div>
+                <span>SmartNutriTracker</span>
+            </div>
+
+            <div class="registro-form-content">
+
+                <div class="form-indicator">
+                    <span></span>
+                    REGISTRO DE USUARIO
+                </div>
+
+                <span class="form-tag">ÚNETE A LA PLATAFORMA</span>
+
+                <h2>Crear una cuenta</h2>
+
+                <p class="form-description">
+                    Completa los siguientes datos para registrarte.
+                </p>
+
+                <form @onsubmit="Registrar" @onsubmit:preventDefault>
+
+                    <div class="campo">
+                        <label for="nombre">Nombre completo</label>
+
+                        <input id="nombre"
+                               type="text"
+                               @bind="Nombre"
+                               placeholder="Ingresa tu nombre completo"
+                               maxlength="100"
+                               autocomplete="name"
+                               required />
+                    </div>
+
+                    <div class="campo">
+                        <label for="correo">Correo electrónico</label>
+
+                        <input id="correo"
+                               type="email"
+                               @bind="Correo"
+                               placeholder="ejemplo@innovare.edu"
+                               maxlength="150"
+                               autocomplete="email"
+                               required />
+                    </div>
+
+                    <div class="campo">
+                        <label for="rol">Tipo de usuario</label>
+
+                        <select id="rol" @bind="RolSeleccionado" required>
+                            <option value="">Selecciona tu rol</option>
+                            <option value="Estudiante">Estudiante</option>
+                            <option value="Docente">Docente</option>
+                            <option value="Nutricionista">Nutricionista</option>
+                        </select>
+
+                        <small class="campo-ayuda">
+                            Selecciona el perfil que corresponde a tu cuenta.
+                        </small>
+                    </div>
+
+                    <div class="campo">
+                        <label for="contrasena">Contraseña</label>
+
+                        <input id="contrasena"
+                               type="password"
+                               @bind="Contrasena"
+                               placeholder="Mínimo 8 caracteres"
+                               minlength="8"
+                               autocomplete="new-password"
+                               required />
+                    </div>
+
+                    <div class="campo">
+                        <label for="confirmar">Confirmar contraseña</label>
+
+                        <input id="confirmar"
+                               type="password"
+                               @bind="ConfirmarContrasena"
+                               placeholder="Repite tu contraseña"
+                               autocomplete="new-password"
+                               required />
+                    </div>
+
+                    <button type="submit"
+                            class="registro-button"
+                            disabled="@Procesando">
+
+                        @if (Procesando)
+                        {
+                            <span>Registrando...</span>
+                        }
+                        else
+                        {
+                            <span>Crear cuenta</span>
+                            <span class="button-arrow">→</span>
+                        }
+
+                    </button>
+
+                    @if (!string.IsNullOrWhiteSpace(Mensaje))
+                    {
+                        <div class="mensaje @(RegistroExitoso ? "exito" : "error")">
+                            @Mensaje
+                        </div>
+                    }
+
+                </form>
+
+                <div class="registro-footer">
+                    ¿Ya tienes una cuenta?
+                    <NavLink href="login">Iniciar sesión</NavLink>
+                </div>
+
+                <div class="security-note">
+                    <span>●</span>
+                    Tus datos se almacenan de forma protegida.
+                </div>
+
+            </div>
+
+            <div class="form-footer">
+                © 2026 SmartNutriTracker · Colegio Innovare
+            </div>
+
+        </section>
+
+    </div>
+
+</div>
+
+@code {
+
+    private string Nombre = "";
+    private string Correo = "";
+    private string RolSeleccionado = "";
+    private string Contrasena = "";
+    private string ConfirmarContrasena = "";
+
+    private string Mensaje = "";
+
+    private bool RegistroExitoso = false;
+    private bool Procesando = false;
+
+    private async Task Registrar()
+    {
+        Mensaje = "";
+        RegistroExitoso = false;
+
+        if (Procesando)
+        {
+            return;
+        }
+
+        if (Contrasena != ConfirmarContrasena)
+        {
+            Mensaje = "Las contraseñas no coinciden.";
+            return;
+        }
+
+        Procesando = true;
+
+        try
+        {
+            var resultado = await UsuarioServicio.RegistrarAsync(
+                Nombre,
+                Correo,
+                Contrasena,
+                RolSeleccionado
+            );
+
+            RegistroExitoso = resultado.Exito;
+            Mensaje = resultado.Mensaje;
+
+            if (resultado.Exito)
+            {
+                Nombre = "";
+                Correo = "";
+                RolSeleccionado = "";
+                Contrasena = "";
+                ConfirmarContrasena = "";
+            }
+        }
+        catch (Exception)
+        {
+            Mensaje = "No se pudo completar el registro. Intenta nuevamente.";
+            RegistroExitoso = false;
+        }
+        finally
+        {
+            Procesando = false;
+        }
+    }
+}
