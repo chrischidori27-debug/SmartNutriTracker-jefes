@@ -1,0 +1,157 @@
+﻿@if (Estudiantes.Count == 0)
+{
+    <EncabezadoPagina Titulo="Panel general" Descripcion="Resumen del estado nutricional de los estudiantes registrados." />
+    <EstadoVacio Titulo="Aún no hay estudiantes"
+                 Descripcion="Cuando registres estudiantes, aquí verás su estado nutricional y sus últimos controles.">
+        <Accion>
+            <button type="button" @onclick="() => OnIrARegistro.InvokeAsync()" class="@Estilos.BotonPrimario">
+                Registrar estudiante
+            </button>
+        </Accion>
+    </EstadoVacio>
+}
+else
+{
+    var resumen = Calcular();
+
+    <EncabezadoPagina Titulo="Panel general" Descripcion="Resumen del estado nutricional de los estudiantes registrados." />
+
+    <div class="space-y-6">
+        <FranjaDatos Columnas="3">
+            <DatoFranja Etiqueta="Estudiantes registrados" Icono="users" IconoClase="text-green-400">
+                <Valor>@resumen.Total</Valor>
+                <Detalle>Con perfil activo en el sistema</Detalle>
+            </DatoFranja>
+            <DatoFranja Etiqueta="IMC normal" Icono="check" IconoClase="text-green-400">
+                <Valor>@resumen.Normales</Valor>
+                <Detalle>@resumen.PorcentajeNormal% de los estudiantes evaluados</Detalle>
+            </DatoFranja>
+            <DatoFranja Etiqueta="Requieren atención" Icono="alerta" IconoClase="text-yellow-400">
+                <Valor>@resumen.Atencion</Valor>
+                <Detalle>IMC fuera del rango normal</Detalle>
+            </DatoFranja>
+        </FranjaDatos>
+
+        <div class="grid gap-6 lg:grid-cols-2">
+            <div class="space-y-6">
+                <Panel Titulo="Objetivos nutricionales" Descripcion="Estudiantes según su objetivo actual.">
+                    <ul class="space-y-5">
+                        @foreach (var objetivo in Nutricion.Objetivos)
+                        {
+                            var cantidad = resumen.Objetivos[objetivo];
+                            var porcentaje = (int)Math.Round((double)cantidad / resumen.Total * 100, MidpointRounding.AwayFromZero);
+                            <li @key="objetivo">
+                                <div class="mb-2 flex items-baseline justify-between text-sm">
+                                    <span class="font-semibold text-white">@objetivo</span>
+                                    <span class="tabular-nums text-neutral-400">@cantidad · @porcentaje%</span>
+                                </div>
+                                <div class="h-2 overflow-hidden rounded-full bg-neutral-800">
+                                    <div class="h-full rounded-full transition-[width] duration-500 @ColorObjetivo(objetivo)"
+                                         style="width: @porcentaje%"></div>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                </Panel>
+
+                <Panel Titulo="Clasificación por IMC" Descripcion="Según el último control de cada estudiante.">
+                    <div class="flex h-3 gap-0.5 overflow-hidden rounded-full bg-neutral-800">
+                        @foreach (var categoria in Nutricion.CategoriasImc.Where(c => resumen.Categorias[c.Clave] > 0))
+                        {
+                            var ancho = Nutricion.Pct((double)resumen.Categorias[categoria.Clave] / resumen.Evaluados * 100);
+                            <div @key="categoria.Clave" class="@categoria.Punto" style="width: @ancho%"></div>
+                        }
+                    </div>
+                    <ul class="mt-5 grid grid-cols-2 gap-x-6 gap-y-3">
+                        @foreach (var categoria in Nutricion.CategoriasImc)
+                        {
+                            <li @key="categoria.Clave" class="flex items-center justify-between text-sm">
+                                <span class="flex items-center gap-2 text-neutral-300">
+                                    <span class="h-2 w-2 rounded-full @categoria.Punto"></span>
+                                    @categoria.Texto
+                                </span>
+                                <span class="font-bold tabular-nums text-white">@resumen.Categorias[categoria.Clave]</span>
+                            </li>
+                        }
+                    </ul>
+                </Panel>
+            </div>
+
+            <Panel Titulo="Últimos controles" Descripcion="Selecciona un estudiante para ver su seguimiento."
+                   Relleno="false" Class="self-start overflow-hidden">
+                <ul class="max-h-[34rem] divide-y divide-neutral-800 overflow-y-auto border-t border-neutral-800">
+                    @foreach (var (estudiante, control) in resumen.Controles)
+                    {
+                        <li @key="estudiante.Id">
+                            <button type="button" @onclick="() => OnVerEstudiante.InvokeAsync(estudiante.Id)"
+                                    aria-label="@($"Ver seguimiento de {estudiante.Nombre}")"
+                                    class="flex w-full items-center gap-3 px-5 py-3.5 text-left transition-colors hover:bg-neutral-900 sm:px-6">
+                                <Avatar Nombre="@estudiante.Nombre" Tamano="sm" />
+                                <span class="min-w-0 flex-1">
+                                    <span class="block truncate text-sm font-semibold text-white">@estudiante.Nombre</span>
+                                    <span class="block text-xs text-neutral-500">@Nutricion.FormatearFecha(control.Fecha)</span>
+                                </span>
+                                <span class="flex flex-col items-end gap-1">
+                                    <span class="text-sm font-bold tabular-nums text-white">@Nutricion.Dec(control.Peso) kg</span>
+                                    <ChipIMC Imc="control.Imc" />
+                                </span>
+                            </button>
+                        </li>
+                    }
+                </ul>
+            </Panel>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public IReadOnlyList<EstudianteDTO> Estudiantes { get; set; } = Array.Empty<EstudianteDTO>();
+    [Parameter] public EventCallback<int> OnVerEstudiante { get; set; }
+    [Parameter] public EventCallback OnIrARegistro { get; set; }
+
+    private sealed class Resumen
+    {
+        public int Total;
+        public int Evaluados;
+        public int Normales;
+        public int Atencion;
+        public int PorcentajeNormal;
+        public Dictionary<string, int> Objetivos = new();
+        public Dictionary<string, int> Categorias = new();
+        public List<(EstudianteDTO Estudiante, ControlDTO Control)> Controles = new();
+    }
+
+    private static string ColorObjetivo(string objetivo) => objetivo switch
+    {
+        "Bajar de peso" => "bg-green-400",
+        "Mantener" => "bg-white",
+        "Ganar masa" => "bg-green-700",
+        _ => "",
+    };
+
+    private Resumen Calcular()
+    {
+        var r = new Resumen();
+        foreach (var objetivo in Nutricion.Objetivos) r.Objetivos[objetivo] = 0;
+        foreach (var categoria in Nutricion.CategoriasImc) r.Categorias[categoria.Clave] = 0;
+
+        foreach (var estudiante in Estudiantes)
+        {
+            if (r.Objetivos.ContainsKey(estudiante.Objetivo)) r.Objetivos[estudiante.Objetivo]++;
+            var ultimo = Nutricion.UltimoControl(estudiante);
+            if (ultimo is null) continue;
+            r.Categorias[Nutricion.CategoriaIMC(ultimo.Imc).Clave]++;
+            r.Controles.Add((estudiante, ultimo));
+        }
+
+        r.Controles = r.Controles.OrderByDescending(c => c.Control.Fecha).ToList();
+        r.Total = Estudiantes.Count;
+        r.Evaluados = r.Controles.Count;
+        r.Normales = r.Categorias["normal"];
+        r.Atencion = r.Evaluados - r.Normales;
+        r.PorcentajeNormal = r.Evaluados > 0
+            ? (int)Math.Round((double)r.Normales / r.Evaluados * 100, MidpointRounding.AwayFromZero)
+            : 0;
+        return r;
+    }
+}

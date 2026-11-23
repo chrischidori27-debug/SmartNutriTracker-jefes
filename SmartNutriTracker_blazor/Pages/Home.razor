@@ -1,0 +1,109 @@
+﻿@page "/"
+@inject PerfilService Perfiles
+@inject IJSRuntime JS
+
+<PageTitle>NutriFit Estudiantil</PageTitle>
+
+<div class="min-h-screen bg-black text-white lg:pl-72">
+    <BarraLateral Activa="@seccion" OnCambiar="CambiarSeccion" OnActualizar="Recargar" />
+    <BarraSuperior OnActualizar="Recargar" />
+
+    <main class="mx-auto w-full max-w-6xl px-4 pb-28 pt-6 sm:px-8 lg:pb-12 lg:pt-10">
+        @if (cargando)
+        {
+            <div class="grid place-items-center py-24 text-sm text-neutral-400">Cargando datos…</div>
+        }
+        else if (error is not null)
+        {
+            <EstadoVacio Titulo="No se pudo cargar la información" Descripcion="@error">
+                <Accion>
+                    <button type="button" @onclick="Recargar" class="@Estilos.BotonPrimario">Reintentar</button>
+                </Accion>
+            </EstadoVacio>
+        }
+        else
+        {
+            @if (seccion == "panel")
+            {
+                <PanelView Estudiantes="estudiantes" OnVerEstudiante="VerSeguimiento" OnIrARegistro="IrARegistro" />
+            }
+            @if (seccion == "registro")
+            {
+                <RegistroView Estudiantes="estudiantes" OnRegistrado="Refrescar" OnAviso="MostrarAviso" />
+            }
+            @if (seccion == "seguimiento")
+            {
+                <SeguimientoView Estudiantes="estudiantes" Seleccionado="estudianteActual"
+                                 OnSeleccionar="SeleccionarEstudiante" OnIrARegistro="IrARegistro" />
+            }
+            @if (seccion == "perfil")
+            {
+                <PerfilView Estudiantes="estudiantes" Seleccionado="estudianteActual"
+                            OnSeleccionar="SeleccionarEstudiante" OnGuardado="Refrescar"
+                            OnAviso="MostrarAviso" OnIrARegistro="IrARegistro" />
+            }
+        }
+    </main>
+
+    <NavegacionInferior Activa="@seccion" OnCambiar="CambiarSeccion" />
+
+    <Aviso Info="aviso" OnCerrar="CerrarAviso" />
+</div>
+
+@code {
+    private List<EstudianteDTO> estudiantes = new();
+    private bool cargando = true;
+    private string? error;
+    private string seccion = "panel";
+    private int? idSeleccionado;
+    private AvisoInfo? aviso;
+    private long contadorAviso;
+
+    private EstudianteDTO? estudianteActual =>
+        estudiantes.FirstOrDefault(e => e.Id == idSeleccionado) ?? estudiantes.FirstOrDefault();
+
+    protected override async Task OnInitializedAsync() => await Cargar(true);
+
+    private async Task Cargar(bool mostrarCarga)
+    {
+        if (mostrarCarga) cargando = true;
+        error = null;
+        try
+        {
+            estudiantes = await Perfiles.ObtenerTodosAsync();
+        }
+        catch (Exception)
+        {
+            error = "No se pudo conectar con la API. Verifica que el proyecto SmartNutriTracker esté en ejecución y que la dirección de Program.cs del cliente sea correcta.";
+        }
+        cargando = false;
+    }
+
+    private Task Refrescar() => Cargar(false);
+
+    private async Task Recargar()
+    {
+        await Cargar(true);
+        if (error is null) MostrarAviso("Datos actualizados.");
+    }
+
+    private async Task CambiarSeccion(string id)
+    {
+        seccion = id;
+        await JS.InvokeVoidAsync("nutri.irArriba");
+    }
+
+    private Task IrARegistro() => CambiarSeccion("registro");
+
+    private void MostrarAviso(string mensaje) => aviso = new AvisoInfo(++contadorAviso, mensaje);
+
+    private void CerrarAviso() => aviso = null;
+
+    private void SeleccionarEstudiante(int id) => idSeleccionado = id;
+
+    private async Task VerSeguimiento(int id)
+    {
+        idSeleccionado = id;
+        await CambiarSeccion("seguimiento");
+    }
+}

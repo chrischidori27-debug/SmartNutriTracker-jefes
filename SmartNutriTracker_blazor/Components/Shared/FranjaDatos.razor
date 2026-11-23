@@ -1,0 +1,10 @@
+﻿<dl class="grid gap-px overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-800 @Distribucion">
+    @ChildContent
+</dl>
+
+@code {
+    [Parameter] public int Columnas { get; set; } = 3;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string Distribucion => Columnas == 4 ? "grid-cols-2 xl:grid-cols-4" : "grid-cols-1 sm:grid-cols-3";
+}

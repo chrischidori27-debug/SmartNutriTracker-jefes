@@ -1,0 +1,36 @@
+﻿<aside class="fixed inset-y-0 left-0 z-30 hidden w-72 flex-col border-r border-neutral-800 bg-black px-5 py-6 lg:flex">
+    <Marca />
+
+    <nav aria-label="Principal" class="mt-10 flex flex-col gap-1">
+        @foreach (var seccion in Secciones.Todas)
+        {
+            var activo = seccion.Id == Activa;
+            <button type="button" @key="seccion.Id"
+                    @onclick="() => OnCambiar.InvokeAsync(seccion.Id)"
+                    aria-current="@(activo ? "page" : null)"
+                    class="relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition-colors @(activo ? "bg-neutral-900 text-white" : "text-neutral-400 hover:bg-neutral-900/60 hover:text-white")">
+                @if (activo)
+                {
+                    <span class="absolute inset-y-2 left-0 w-1 rounded-full bg-green-400"></span>
+                }
+                <IconoSvg Nombre="@seccion.Icono" Class="@(activo ? "h-5 w-5 text-green-400" : "h-5 w-5")" />
+                @seccion.Etiqueta
+            </button>
+        }
+    </nav>
+
+    <div class="mt-auto space-y-3">
+        <p class="text-xs leading-relaxed text-neutral-500">Los datos se guardan en la base de datos.</p>
+        <button type="button" @onclick="() => OnActualizar.InvokeAsync()"
+                class="flex w-full items-center justify-center gap-2 rounded-lg border border-neutral-800 px-3 py-2.5 text-sm font-medium text-neutral-300 transition-colors hover:bg-neutral-900 hover:text-white">
+            <IconoSvg Nombre="refresh" Class="h-4 w-4" />
+            Actualizar datos
+        </button>
+    </div>
+</aside>
+
+@code {
+    [Parameter] public string Activa { get; set; } = "";
+    [Parameter] public EventCallback<string> OnCambiar { get; set; }
+    [Parameter] public EventCallback OnActualizar { get; set; }
+}

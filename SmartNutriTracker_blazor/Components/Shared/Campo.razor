@@ -1,0 +1,38 @@
+﻿<div>
+    <label for="@Id" class="mb-1.5 block text-sm font-medium text-neutral-200">@Etiqueta</label>
+    @ChildContent?.Invoke(Atributos)
+    @if (!string.IsNullOrEmpty(Error))
+    {
+        <p id="@($"{Id}-error")" class="mt-1.5 text-xs font-medium text-red-400">@Error</p>
+    }
+    else if (!string.IsNullOrEmpty(Ayuda))
+    {
+        <p id="@($"{Id}-ayuda")" class="mt-1.5 text-xs text-neutral-500">@Ayuda</p>
+    }
+</div>
+
+@code {
+    [Parameter] public string Id { get; set; } = "";
+    [Parameter] public string Etiqueta { get; set; } = "";
+    [Parameter] public string? Error { get; set; }
+    [Parameter] public string? Ayuda { get; set; }
+    [Parameter] public RenderFragment<Dictionary<string, object>>? ChildContent { get; set; }
+
+    private Dictionary<string, object> Atributos
+    {
+        get
+        {
+            var atributos = new Dictionary<string, object> { ["id"] = Id };
+            if (!string.IsNullOrEmpty(Error))
+            {
+                atributos["aria-invalid"] = "true";
+                atributos["aria-describedby"] = $"{Id}-error";
+            }
+            else if (!string.IsNullOrEmpty(Ayuda))
+            {
+                atributos["aria-describedby"] = $"{Id}-ayuda";
+            }
+            return atributos;
+        }
+    }
+}

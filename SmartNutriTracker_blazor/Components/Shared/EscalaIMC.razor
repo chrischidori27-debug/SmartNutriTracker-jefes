@@ -1,0 +1,55 @@
+﻿@{
+    var categoria = Imc > 0 ? Nutricion.CategoriaIMC(Imc) : null;
+    var descripcion = categoria is not null ? $"IMC {Nutricion.Dec(Imc)}, {categoria.Texto}" : "IMC sin calcular";
+}
+<div role="img" aria-label="@descripcion">
+    <div class="relative h-4">
+        <div class="absolute inset-x-0 top-1/2 flex h-2.5 -translate-y-1/2 gap-0.5">
+            @foreach (var segmento in Segmentos)
+            {
+                var activo = categoria is not null && categoria.Clave == segmento.Clave;
+                var ancho = Nutricion.Pct((segmento.Hasta - segmento.Desde) / (Maximo - Minimo) * 100);
+                <div @key="segmento.Clave"
+                     class="rounded-full transition-opacity @segmento.Color @(activo ? "opacity-100" : "opacity-25")"
+                     style="width: @ancho%"></div>
+            }
+        </div>
+        @if (categoria is not null)
+        {
+            var izquierda = Nutricion.Pct(Porcentaje(Imc));
+            <span class="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-black bg-white shadow"
+                  style="left: @izquierda%"></span>
+        }
+    </div>
+    <div class="relative mt-2 h-4 text-xs tabular-nums text-neutral-500">
+        @foreach (var limite in Limites)
+        {
+            var izquierda = Nutricion.Pct(Porcentaje(limite));
+            <span @key="limite" class="absolute -translate-x-1/2" style="left: @izquierda%">@Nutricion.Pct(limite)</span>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public double Imc { get; set; }
+
+    private const double Minimo = 15;
+    private const double Maximo = 40;
+    private static readonly double[] Limites = { 18.5, 25, 30 };
+
+    private record Segmento(string Clave, double Desde, double Hasta, string Color);
+
+    private static readonly Segmento[] Segmentos =
+    {
+        new("bajo", 15, 18.5, "bg-yellow-400"),
+        new("normal", 18.5, 25, "bg-green-400"),
+        new("sobrepeso", 25, 30, "bg-orange-400"),
+        new("obesidad", 30, 40, "bg-red-400"),
+    };
+
+    private static double Porcentaje(double valor)
+    {
+        var acotado = Math.Min(Math.Max(valor, Minimo), Maximo);
+        return (acotado - Minimo) / (Maximo - Minimo) * 100;
+    }
+}

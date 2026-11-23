@@ -1,0 +1,129 @@
+﻿@using System.Net
+@using System.Text
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+@if (Puntos.Count == 0)
+{
+    <p class="py-16 text-center text-sm text-neutral-500">Aún no hay controles registrados.</p>
+}
+else
+{
+    <div @ref="_contenedor" class="w-full">
+        @((MarkupString)ConstruirSvg())
+    </div>
+}
+
+@code {
+    [Parameter] public IReadOnlyList<PuntoGrafico> Puntos { get; set; } = Array.Empty<PuntoGrafico>();
+    [Parameter] public string Nombre { get; set; } = "";
+    [Parameter] public string Unidad { get; set; } = "";
+
+    private const int Alto = 300;
+    private const int MargenArriba = 28;
+    private const int MargenDerecha = 28;
+    private const int MargenAbajo = 44;
+    private const int MargenIzquierda = 52;
+
+    private ElementReference _contenedor;
+    private DotNetObjectReference<GraficoProgreso>? _referencia;
+    private bool _observando;
+    private int _ancho = 640;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_observando || Puntos.Count == 0) return;
+        _observando = true;
+        _referencia = DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("nutri.observarAncho", _contenedor, _referencia);
+    }
+
+    [JSInvokable]
+    public void ActualizarAncho(int ancho)
+    {
+        var nuevo = Math.Max(280, ancho);
+        if (nuevo == _ancho) return;
+        _ancho = nuevo;
+        InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_observando)
+        {
+            try { await JS.InvokeVoidAsync("nutri.dejarDeObservar", _contenedor); }
+            catch (Exception) { /* el navegador ya pudo haber descartado el elemento */ }
+        }
+        _referencia?.Dispose();
+    }
+
+    private static string N(double v) => v.ToString("0.##", CultureInfo.InvariantCulture);
+    private static string F1(double v) => v.ToString("0.0", CultureInfo.InvariantCulture);
+
+    private string ConstruirSvg()
+    {
+        var ultimo = Puntos.Count - 1;
+        var valores = Puntos.Select(p => p.Valor).ToList();
+        var minimo = valores.Min();
+        var maximo = valores.Max();
+        var holgura = maximo == minimo ? Math.Max(1, minimo * 0.05) : (maximo - minimo) * 0.3;
+        var yMinimo = minimo - holgura;
+        var yMaximo = maximo + holgura;
+
+        double anchoUtil = _ancho - MargenIzquierda - MargenDerecha;
+        double altoUtil = Alto - MargenArriba - MargenAbajo;
+
+        double X(int i) => Puntos.Count == 1
+            ? MargenIzquierda + anchoUtil / 2
+            : MargenIzquierda + (double)i / ultimo * anchoUtil;
+        double Y(double v) => MargenArriba + (1 - (v - yMinimo) / (yMaximo - yMinimo)) * altoUtil;
+
+        var paso = Math.Max(1, (int)Math.Ceiling(Puntos.Count / (double)Math.Max(2, (int)Math.Floor(anchoUtil / 90))));
+        var abajo = MargenArriba + altoUtil;
+
+        var linea = string.Join(' ', Puntos.Select((p, i) => $"{(i == 0 ? 'M' : 'L')}{F1(X(i))},{F1(Y(p.Valor))}"));
+        var area = $"{linea} L{F1(X(ultimo))},{N(abajo)} L{F1(X(0))},{N(abajo)} Z";
+        var resumen = $"Gráfico de {Nombre}: de {Nutricion.Dec(valores[0])} a {Nutricion.Dec(valores[ultimo])} {Unidad} en {Puntos.Count} controles";
+
+        var sb = new StringBuilder();
+        sb.Append($"<svg viewBox='0 0 {_ancho} {Alto}' role='img' aria-label='{WebUtility.HtmlEncode(resumen)}' class='block' style='width:100%;height:{Alto}px'>");
+        sb.Append("<defs><linearGradient id='grafico-area' x1='0' y1='0' x2='0' y2='1'>");
+        sb.Append("<stop offset='0%' stop-color='#4ade80' stop-opacity='0.28'/>");
+        sb.Append("<stop offset='100%' stop-color='#4ade80' stop-opacity='0'/>");
+        sb.Append("</linearGradient></defs>");
+
+        for (var i = 0; i < 4; i++)
+        {
+            var valor = yMinimo + (yMaximo - yMinimo) * i / 3;
+            var y = N(Y(valor));
+            sb.Append($"<g><line x1='{MargenIzquierda}' x2='{_ancho - MargenDerecha}' y1='{y}' y2='{y}' stroke='#262626' stroke-dasharray='3 5'/>");
+            sb.Append($"<text x='{MargenIzquierda - 12}' y='{y}' dy='4' text-anchor='end' fill='#737373' font-size='12'>{Nutricion.Dec(valor)}</text></g>");
+        }
+
+        if (Puntos.Count > 1)
+        {
+            sb.Append($"<path d='{area}' fill='url(#grafico-area)'/>");
+            sb.Append($"<path d='{linea}' fill='none' stroke='#4ade80' stroke-width='2.5' stroke-linejoin='round' stroke-linecap='round'/>");
+        }
+
+        for (var i = 0; i < Puntos.Count; i++)
+        {
+            var x = N(X(i));
+            var y = N(Y(Puntos[i].Valor));
+            var esUltimo = i == ultimo;
+
+            sb.Append("<g>");
+            if (esUltimo)
+                sb.Append($"<circle cx='{x}' cy='{y}' r='11' fill='#4ade80' fill-opacity='0.16'/>");
+            sb.Append($"<circle cx='{x}' cy='{y}' r='{(esUltimo ? "6" : "4.5")}' fill='{(esUltimo ? "#4ade80" : "#000000")}' stroke='#4ade80' stroke-width='2'/>");
+            if (Puntos.Count <= 8 || esUltimo)
+                sb.Append($"<text x='{x}' y='{y}' dy='-16' text-anchor='middle' fill='#ffffff' font-size='13' font-weight='700'>{Nutricion.Dec(Puntos[i].Valor)}</text>");
+            if (i == ultimo || (i % paso == 0 && ultimo - i >= paso))
+                sb.Append($"<text x='{x}' y='{Alto - 14}' text-anchor='middle' fill='#a3a3a3' font-size='12'>{Nutricion.FormatearFecha(Puntos[i].Etiqueta, true)}</text>");
+            sb.Append("</g>");
+        }
+
+        sb.Append("</svg>");
+        return sb.ToString();
+    }
+}

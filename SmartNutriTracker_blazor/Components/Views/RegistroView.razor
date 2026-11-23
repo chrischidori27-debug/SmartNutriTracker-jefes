@@ -1,0 +1,347 @@
+﻿@inject IJSRuntime JS
+@inject PerfilService Perfiles
+
+<EncabezadoPagina Titulo="Registro de estudiantes"
+                  Descripcion="Da de alta a un estudiante con sus datos personales y sus medidas iniciales." />
+
+@{
+    var pesoIngresado = Nutricion.Numero(formulario.Peso);
+    var alturaIngresada = Nutricion.NormalizarAltura(formulario.Altura);
+    var imcPrevio = pesoIngresado > 0 && Nutricion.AlturaValida(alturaIngresada)
+        ? Nutricion.CalcularIMC(pesoIngresado, alturaIngresada)
+        : 0;
+}
+
+<div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+    <form @ref="formularioRef" @key="_version" novalidate @onsubmit="Enviar" @onsubmit:preventDefault class="space-y-6">
+        <Panel Titulo="Datos personales">
+            <div class="grid gap-5 sm:grid-cols-2">
+                <Campo Id="registro-nombres" Etiqueta="Nombres" Error="@Err("nombres")"
+                       Ayuda="Solo letras, espacios, apóstrofo y guion." Context="attrs">
+                    <input type="text" autocomplete="off" maxlength="@MaxPorCampoNombre" placeholder="Carlos Fernando"
+                           class="@Estilos.Campo" value="@formulario.Nombres" @attributes="attrs"
+                           @oninput='e => Actualizar("nombres", e)' @onblur='() => AlSalir("nombres")' />
+                </Campo>
+                <Campo Id="registro-apellidos" Etiqueta="Apellidos" Error="@Err("apellidos")"
+                       Ayuda="@ContadorNombre()" Context="attrs">
+                    <input type="text" autocomplete="off" maxlength="@MaxPorCampoNombre" placeholder="Mendoza Paredes"
+                           class="@Estilos.Campo" value="@formulario.Apellidos" @attributes="attrs"
+                           @oninput='e => Actualizar("apellidos", e)' @onblur='() => AlSalir("apellidos")' />
+                </Campo>
+                <div class="sm:col-span-2">
+                    <Campo Id="registro-correo" Etiqueta="Correo institucional" Error="@Err("correo")" Context="attrs">
+                        <input type="email" autocomplete="off" maxlength="@ReglasValidacion.CorreoMax"
+                               placeholder="alumno@@innovare.edu" class="@Estilos.Campo"
+                               @attributes="attrs" @oninput='e => Actualizar("correo", e)' @onblur='() => AlSalir("correo")' />
+                    </Campo>
+                </div>
+                <Campo Id="registro-password" Etiqueta="Contraseña temporal" Error="@Err("password")"
+                       Ayuda="@AyudaPassword" Context="attrs">
+                    <input type="password" autocomplete="new-password" maxlength="@ReglasValidacion.PasswordMax"
+                           placeholder="••••••••" class="@Estilos.Campo"
+                           @attributes="attrs" @oninput='e => Actualizar("password", e)' @onblur='() => AlSalir("password")' />
+                </Campo>
+                <Campo Id="registro-nacimiento" Etiqueta="Fecha de nacimiento" Error="@Err("fechaNacimiento")" Context="attrs">
+                    <input type="date" min="@FechaMinima" max="@FechaMaxima" class="@Estilos.Campo"
+                           @attributes="attrs" @oninput='e => Actualizar("fechaNacimiento", e)'
+                           @onblur='() => AlSalir("fechaNacimiento")' />
+                </Campo>
+            </div>
+        </Panel>
+
+        <Panel Titulo="Perfil nutricional">
+            <div class="space-y-5">
+                <div>
+                    <p class="mb-1.5 text-sm font-medium text-neutral-200">Objetivo nutricional</p>
+                    <SelectorObjetivo Nombre="registro-objetivo" Valor="@formulario.Objetivo" OnCambiar="CambiarObjetivo" />
+                </div>
+                <div class="grid gap-5 sm:grid-cols-2">
+                    <Campo Id="registro-peso" Etiqueta="Peso inicial (kg)" Error="@Err("peso")" Context="attrs">
+                        <input type="number" inputmode="decimal" min="@ReglasValidacion.PesoMin" max="@ReglasValidacion.PesoMax"
+                               step="0.01" placeholder="75.5" class="@Estilos.Campo"
+                               @attributes="attrs" @oninput='e => Actualizar("peso", e)' @onblur='() => AlSalir("peso")' />
+                    </Campo>
+                    <Campo Id="registro-altura" Etiqueta="Altura (m o cm)" Error="@Err("altura")"
+                           Ayuda="Puedes escribir 1.75 o 175." Context="attrs">
+                        <input type="number" inputmode="decimal" min="@ReglasValidacion.AlturaMin" max="250"
+                               step="0.01" placeholder="1.75" class="@Estilos.Campo"
+                               @attributes="attrs" @oninput='e => Actualizar("altura", e)' @onblur='() => AlSalir("altura")' />
+                    </Campo>
+                </div>
+            </div>
+        </Panel>
+
+        @if (!string.IsNullOrEmpty(errorGeneral))
+        {
+            <p role="alert" class="text-right text-sm font-medium text-red-400">@errorGeneral</p>
+        }
+
+        <div class="flex justify-end">
+            <button type="submit" disabled="@_enviando" class="@Estilos.BotonPrimario w-full sm:w-auto disabled:opacity-60">
+                <IconoSvg Nombre="user-plus" Class="h-4 w-4" />
+                Registrar estudiante
+            </button>
+        </div>
+    </form>
+
+    <aside class="space-y-6 lg:sticky lg:top-10 lg:self-start">
+        <Panel Titulo="IMC inicial" Descripcion="Se calcula con el peso y la altura ingresados.">
+            <div class="flex flex-wrap items-end justify-between gap-3">
+                <p class="text-5xl font-extrabold tabular-nums leading-none text-white">
+                    @if (imcPrevio > 0)
+                    {
+                        @Nutricion.Dec(imcPrevio)
+                    }
+                    else
+                    {
+
+                        <span class="text-neutral-700">--</span>
+                    }
+                    <span class="ml-2 text-sm font-medium text-neutral-500">kg/m²</span>
+                </p>
+                @if (imcPrevio > 0)
+                {
+                    <ChipIMC Imc="imcPrevio" />
+                }
+            </div>
+            <div class="mt-8">
+                <EscalaIMC Imc="imcPrevio" />
+            </div>
+        </Panel>
+
+        <Panel>
+            <div class="flex items-center justify-between">
+                <span class="text-sm text-neutral-400">Estudiantes registrados</span>
+                <span class="text-2xl font-extrabold tabular-nums text-white">@Estudiantes.Count</span>
+            </div>
+        </Panel>
+    </aside>
+</div>
+
+@code {
+    [Parameter] public IReadOnlyList<EstudianteDTO> Estudiantes { get; set; } = Array.Empty<EstudianteDTO>();
+    [Parameter] public EventCallback OnRegistrado { get; set; }
+    [Parameter] public EventCallback<string> OnAviso { get; set; }
+
+    private sealed class FormularioRegistro
+    {
+        public string Nombres = "";
+        public string Apellidos = "";
+        public string Correo = "";
+        public string Password = "";
+        public string FechaNacimiento = "";
+        public string Objetivo = "Bajar de peso";
+        public string Peso = "";
+        public string Altura = "";
+    }
+
+    // El orden es el de la pantalla: el primer campo con error recibe el foco
+    private static readonly string[] CamposConocidos =
+        { "nombres", "apellidos", "correo", "password", "fechaNacimiento", "peso", "altura" };
+
+    // Cada campo admite como máximo 49 caracteres; el límite real (50) es entre nombres y apellidos juntos
+    private const int MaxPorCampoNombre = ReglasValidacion.NombreCompletoMax - 1;
+
+    private static readonly string AyudaPassword =
+        $"{ReglasValidacion.PasswordMin} a {ReglasValidacion.PasswordMax} caracteres, con letras y números.";
+
+    private static string FechaMinima => Iso(ValidadorCampos.FechaNacimientoMinima(Nutricion.Hoy()));
+    private static string FechaMaxima => Iso(ValidadorCampos.FechaNacimientoMaxima(Nutricion.Hoy()));
+
+    private static string Iso(DateOnly fecha) => fecha.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+    private FormularioRegistro formulario = new();
+    private Dictionary<string, string> errores = new();
+    private string? errorGeneral;
+    private ElementReference formularioRef;
+    private int _version;
+    private bool _enviando;
+    private bool _enfocarPrimerError;
+
+    private string? Err(string campo) => errores.GetValueOrDefault(campo);
+
+    private void Actualizar(string campo, ChangeEventArgs e)
+    {
+        var valor = e.Value?.ToString() ?? "";
+        switch (campo)
+        {
+            case "nombres": formulario.Nombres = valor; break;
+            case "apellidos": formulario.Apellidos = valor; break;
+            case "correo": formulario.Correo = valor; break;
+            case "password": formulario.Password = valor; break;
+            case "fechaNacimiento": formulario.FechaNacimiento = valor; break;
+            case "peso": formulario.Peso = valor; break;
+            case "altura": formulario.Altura = valor; break;
+        }
+        errores.Remove(campo);
+    }
+
+    private void CambiarObjetivo(string objetivo) => formulario.Objetivo = objetivo;
+
+    private string ContadorNombre()
+    {
+        var nombres = ValidadorCampos.NormalizarTexto(formulario.Nombres);
+        var apellidos = ValidadorCampos.NormalizarTexto(formulario.Apellidos);
+        var total = nombres.Length + apellidos.Length + (nombres.Length > 0 && apellidos.Length > 0 ? 1 : 0);
+        return $"Nombre completo: {total}/{ReglasValidacion.NombreCompletoMax} caracteres.";
+    }
+
+    // Al salir de un campo con texto se corrige el formato (espacios) y se muestra su error, si lo tiene.
+    // Los campos vacíos solo se reclaman al enviar, para no mostrar errores antes de tiempo.
+    private void AlSalir(string campo)
+    {
+        if (campo == "nombres") formulario.Nombres = ValidadorCampos.NormalizarTexto(formulario.Nombres);
+        if (campo == "apellidos") formulario.Apellidos = ValidadorCampos.NormalizarTexto(formulario.Apellidos);
+
+        RevisarCampo(campo);
+        // El IMC depende de peso y altura: al cambiar uno se revisa también el otro
+        if (campo == "altura") RevisarCampo("peso");
+        if (campo == "peso") RevisarCampo("altura");
+    }
+
+    private void RevisarCampo(string campo)
+    {
+        if (EstaVacio(campo)) return;
+        var error = ValidarCampo(campo);
+        if (error is null) errores.Remove(campo);
+        else errores[campo] = error;
+    }
+
+    private bool EstaVacio(string campo) => campo switch
+    {
+        "nombres" => string.IsNullOrWhiteSpace(formulario.Nombres),
+        "apellidos" => string.IsNullOrWhiteSpace(formulario.Apellidos),
+        "correo" => string.IsNullOrWhiteSpace(formulario.Correo),
+        "password" => formulario.Password.Length == 0,
+        "fechaNacimiento" => string.IsNullOrEmpty(formulario.FechaNacimiento),
+        "peso" => string.IsNullOrWhiteSpace(formulario.Peso),
+        "altura" => string.IsNullOrWhiteSpace(formulario.Altura),
+        _ => true,
+    };
+
+    // Mismas reglas que valida la API (ValidadorCampos vive en SmartNutriTracker_biblio)
+    private string? ValidarCampo(string campo)
+    {
+        switch (campo)
+        {
+            case "nombres":
+                return ValidadorCampos.Nombre(ValidadorCampos.NormalizarTexto(formulario.Nombres), "los nombres");
+
+            case "apellidos":
+            {
+                var nombres = ValidadorCampos.NormalizarTexto(formulario.Nombres);
+                var apellidos = ValidadorCampos.NormalizarTexto(formulario.Apellidos);
+                return ValidadorCampos.Nombre(apellidos, "los apellidos")
+                       ?? ValidadorCampos.NombreCompleto(nombres, apellidos);
+            }
+
+            case "correo":
+            {
+                var error = ValidadorCampos.Correo(formulario.Correo);
+                if (error is not null) return error;
+                var correo = formulario.Correo.Trim().ToLowerInvariant();
+                return Estudiantes.Any(x => x.Correo.ToLowerInvariant() == correo)
+                    ? "Ya existe un estudiante con este correo."
+                    : null;
+            }
+
+            case "password":
+                return ValidadorCampos.Password(formulario.Password);
+
+            case "fechaNacimiento":
+            {
+                if (string.IsNullOrEmpty(formulario.FechaNacimiento)) return "Selecciona la fecha de nacimiento.";
+                if (!DateOnly.TryParseExact(formulario.FechaNacimiento, "yyyy-MM-dd", CultureInfo.InvariantCulture,
+                        DateTimeStyles.None, out var nacimiento))
+                    return "La fecha no es válida. Usa el formato AAAA-MM-DD (ej. 2010-05-21).";
+                return ValidadorCampos.FechaNacimiento(nacimiento, Nutricion.Hoy());
+            }
+
+            case "peso":
+            {
+                var peso = Nutricion.Numero(formulario.Peso);
+                var error = ValidadorCampos.Peso(peso);
+                if (error is not null) return error;
+                // Coherencia: solo se evalúa cuando la altura es válida
+                var alturaEscrita = Nutricion.Numero(formulario.Altura);
+                if (ValidadorCampos.Altura(alturaEscrita) is not null) return null;
+                return ValidadorCampos.CoherenciaImc(peso, CalculosNutricionales.NormalizarAltura(alturaEscrita));
+            }
+
+            case "altura":
+                return ValidadorCampos.Altura(Nutricion.Numero(formulario.Altura));
+
+            default:
+                return null;
+        }
+    }
+
+    private Dictionary<string, string> Validar()
+    {
+        var resultado = new Dictionary<string, string>();
+        foreach (var campo in CamposConocidos)
+        {
+            var error = ValidarCampo(campo);
+            if (error is not null) resultado[campo] = error;
+        }
+        return resultado;
+    }
+
+    private async Task Enviar()
+    {
+        if (_enviando) return;
+        errorGeneral = null;
+
+        var encontrados = Validar();
+        if (encontrados.Count > 0)
+        {
+            errores = encontrados;
+            _enfocarPrimerError = true;
+            return;
+        }
+
+        var dto = new RegistroEstudianteDTO
+        {
+            Nombres = ValidadorCampos.NormalizarTexto(formulario.Nombres),
+            Apellidos = ValidadorCampos.NormalizarTexto(formulario.Apellidos),
+            Correo = formulario.Correo.Trim().ToLowerInvariant(),
+            Password = formulario.Password,
+            FechaNacimiento = DateOnly.ParseExact(formulario.FechaNacimiento, "yyyy-MM-dd", CultureInfo.InvariantCulture),
+            Objetivo = formulario.Objetivo,
+            Peso = Nutricion.Numero(formulario.Peso),
+            Altura = Nutricion.NormalizarAltura(formulario.Altura),
+        };
+
+        _enviando = true;
+        var resultado = await Perfiles.RegistrarAsync(dto);
+        _enviando = false;
+
+        if (!resultado.Ok)
+        {
+            var error = resultado.Error!;
+            if (!string.IsNullOrEmpty(error.Campo) && CamposConocidos.Contains(error.Campo))
+            {
+                errores = new Dictionary<string, string> { [error.Campo] = error.Mensaje };
+                _enfocarPrimerError = true;
+            }
+            else
+            {
+                errorGeneral = error.Mensaje;
+            }
+            return;
+        }
+
+        formulario = new FormularioRegistro();
+        errores = new Dictionary<string, string>();
+        _version++;
+        await OnRegistrado.InvokeAsync();
+        await OnAviso.InvokeAsync("Estudiante registrado correctamente.");
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_enfocarPrimerError) return;
+        _enfocarPrimerError = false;
+        await JS.InvokeVoidAsync("nutri.enfocarPrimerInvalido", formularioRef);
+    }
+}

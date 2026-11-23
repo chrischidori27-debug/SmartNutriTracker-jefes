@@ -1,0 +1,13 @@
+﻿<div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+        <h1 class="text-2xl font-extrabold tracking-tight text-white sm:text-3xl">@Titulo</h1>
+        <p class="mt-1.5 max-w-xl text-sm leading-relaxed text-neutral-400">@Descripcion</p>
+    </div>
+    @ChildContent
+</div>
+
+@code {
+    [Parameter] public string Titulo { get; set; } = "";
+    [Parameter] public string Descripcion { get; set; } = "";
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

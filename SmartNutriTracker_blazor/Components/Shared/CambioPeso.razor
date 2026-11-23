@@ -1,0 +1,23 @@
+﻿@if (Cambio is null)
+{
+    <span class="text-xs text-neutral-500">Control inicial</span>
+}
+else if (Cambio == 0)
+{
+    <span class="inline-flex items-center gap-1 text-xs font-medium text-neutral-400">
+        <IconoSvg Nombre="minus" Class="h-3.5 w-3.5" />
+        Sin cambios
+    </span>
+}
+else
+{
+    var sube = Cambio > 0;
+    <span class="inline-flex items-center gap-1 text-xs font-medium text-neutral-300">
+        <IconoSvg Nombre="@(sube ? "trending-up" : "trending-down")" Class="h-3.5 w-3.5" />
+        @(sube ? "+" : "−")@Nutricion.Dec(Math.Abs(Cambio.Value)) kg
+    </span>
+}
+
+@code {
+    [Parameter] public double? Cambio { get; set; }
+}

@@ -1,0 +1,153 @@
+﻿@inject PerfilService Perfiles
+@inject IJSRuntime JS
+
+<form novalidate @onsubmit="Enviar" @onsubmit:preventDefault class="space-y-5">
+    <Campo Id="perfil-peso" Etiqueta="Nuevo peso (kg)" Error="@_error" Ayuda="@AyudaPeso" Context="attrs">
+        <input type="number" inputmode="decimal" min="@ReglasValidacion.PesoMin" max="@ReglasValidacion.PesoMax"
+               step="0.01" class="@Estilos.Campo" @attributes="attrs" value="@_pesoInicial"
+               @oninput="AlCambiarPeso" @onblur="AlSalirDelPeso" />
+    </Campo>
+
+    @if (_confirmacion is not null)
+    {
+        <div role="alertdialog" aria-label="Confirmar cambio de peso"
+             class="rounded-lg border border-yellow-400/30 bg-yellow-400/10 p-4">
+            <p class="text-sm font-medium leading-relaxed text-yellow-300">@_confirmacion</p>
+            <div class="mt-3 grid grid-cols-2 gap-2">
+                <button type="button" @onclick="ConfirmarYGuardar" disabled="@_enviando"
+                        class="@Estilos.BotonPrimario disabled:opacity-60">
+                    Sí, es correcto
+                </button>
+                <button type="button" @onclick="CorregirPeso" disabled="@_enviando"
+                        class="@Estilos.BotonSecundario disabled:opacity-60">
+                    Corregir
+                </button>
+            </div>
+        </div>
+    }
+
+    <div>
+        <p class="mb-1.5 text-sm font-medium text-neutral-200">Objetivo nutricional</p>
+        <SelectorObjetivo Nombre="perfil-objetivo" Valor="@_objetivo" OnCambiar="CambiarObjetivo" Compacto="true" />
+    </div>
+
+    <button type="submit" disabled="@(_enviando || _confirmacion is not null)" class="@Estilos.BotonPrimario w-full disabled:opacity-60">
+        <IconoSvg Nombre="save" Class="h-4 w-4" />
+        Guardar cambios
+    </button>
+
+    <p class="text-xs leading-relaxed text-neutral-500">
+        Cada guardado registra un control con la fecha de hoy. Si ya existe uno de hoy, se reemplaza.
+    </p>
+</form>
+
+@code {
+    [Parameter] public EstudianteDTO Estudiante { get; set; } = new();
+    [Parameter] public EventCallback OnGuardado { get; set; }
+    [Parameter] public EventCallback<string> OnAviso { get; set; }
+
+    private static readonly string AyudaPeso =
+        $"Entre {ReglasValidacion.PesoMin} y {ReglasValidacion.PesoMax} kg, con máximo {ReglasValidacion.PesoDecimales} decimales.";
+
+    private string _pesoInicial = "";
+    private string _peso = "";
+    private string _objetivo = "";
+    private string _error = "";
+    private string? _confirmacion;
+    private bool _enviando;
+
+    // Altura registrada del estudiante, para comprobar que el IMC resultante tenga sentido
+    private double AlturaActual => Nutricion.UltimoControl(Estudiante)?.Altura ?? Estudiante.Altura;
+
+    protected override void OnInitialized()
+    {
+        var control = Nutricion.UltimoControl(Estudiante);
+        _pesoInicial = control is null ? "" : control.Peso.ToString(CultureInfo.InvariantCulture);
+        _peso = _pesoInicial;
+        _objetivo = Estudiante.Objetivo;
+    }
+
+    private void AlCambiarPeso(ChangeEventArgs e)
+    {
+        _peso = e.Value?.ToString() ?? "";
+        _error = "";
+        _confirmacion = null; // si cambia el valor, la confirmación anterior ya no aplica
+    }
+
+    private void AlSalirDelPeso()
+    {
+        if (string.IsNullOrWhiteSpace(_peso)) return;
+        _error = ValidarPeso(Nutricion.Numero(_peso)) ?? "";
+    }
+
+    private void CambiarObjetivo(string objetivo) => _objetivo = objetivo;
+
+    private string? ValidarPeso(double valor) =>
+        ValidadorCampos.Peso(valor) ?? ValidadorCampos.CoherenciaImc(valor, AlturaActual);
+
+    private async Task Enviar()
+    {
+        if (_enviando) return;
+
+        var valor = Nutricion.Numero(_peso);
+        var error = ValidarPeso(valor);
+        if (error is not null)
+        {
+            _error = error;
+            _confirmacion = null;
+            return;
+        }
+
+        _error = "";
+
+        // HU-10: un salto de más de 10 kg suele ser un error de tecleo; se pide confirmación
+        var ultimo = Nutricion.UltimoControl(Estudiante);
+        if (ultimo is not null && ValidadorCampos.CambioPesoRequiereConfirmacion(ultimo.Peso, valor))
+        {
+            _confirmacion = ValidadorCampos.MensajeCambioPeso(ultimo.Peso, valor);
+            return;
+        }
+
+        await Guardar(valor, confirmado: false);
+    }
+
+    private async Task ConfirmarYGuardar()
+    {
+        if (_enviando) return;
+        await Guardar(Nutricion.Numero(_peso), confirmado: true);
+    }
+
+    private async Task CorregirPeso()
+    {
+        _confirmacion = null;
+        await JS.InvokeVoidAsync("nutri.enfocarId", "perfil-peso");
+    }
+
+    private async Task Guardar(double valor, bool confirmado)
+    {
+        _enviando = true;
+        var resultado = await Perfiles.GuardarControlAsync(Estudiante.Id,
+            new ActualizarControlDTO { Peso = valor, Objetivo = _objetivo, ConfirmarCambioGrande = confirmado });
+        _enviando = false;
+
+        if (!resultado.Ok)
+        {
+            var fallo = resultado.Error!;
+            if (fallo.Campo == "confirmacion")
+            {
+                // La API también exige la confirmación (p. ej. si el último control cambió mientras tanto)
+                _confirmacion = fallo.Mensaje;
+            }
+            else
+            {
+                _confirmacion = null;
+                _error = fallo.Mensaje;
+            }
+            return;
+        }
+
+        _confirmacion = null;
+        await OnGuardado.InvokeAsync();
+        await OnAviso.InvokeAsync("Cambios guardados correctamente.");
+    }
+}

@@ -1,0 +1,13 @@
+﻿<span class="grid shrink-0 place-items-center rounded-full bg-green-500 font-extrabold text-black @ClasesTamano" aria-hidden="true">@Nutricion.Iniciales(Nombre)</span>
+
+@code {
+    [Parameter] public string Nombre { get; set; } = "";
+    [Parameter] public string Tamano { get; set; } = "md";
+
+    private string ClasesTamano => Tamano switch
+    {
+        "sm" => "h-9 w-9 text-xs",
+        "lg" => "h-16 w-16 text-xl",
+        _ => "h-11 w-11 text-sm",
+    };
+}

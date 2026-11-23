@@ -1,0 +1,22 @@
+﻿<div role="radiogroup" aria-label="Objetivo nutricional" class="@(Compacto ? "grid gap-2" : "grid gap-2 sm:grid-cols-3")">
+    @for (var indice = 0; indice < Nutricion.Objetivos.Length; indice++)
+    {
+        var opcion = Nutricion.Objetivos[indice];
+        var id = $"{Nombre}-{indice}";
+        <div @key="opcion">
+            <input type="radio" id="@id" name="@Nombre" value="@opcion" checked="@(Valor == opcion)"
+                   @onchange="() => OnCambiar.InvokeAsync(opcion)" class="peer sr-only" />
+            <label for="@id"
+                   class="flex h-11 cursor-pointer items-center justify-center rounded-lg border border-neutral-800 bg-black px-3 text-sm font-semibold text-neutral-300 transition-colors hover:border-neutral-600 peer-checked:border-green-500 peer-checked:bg-green-500/10 peer-checked:text-green-300 peer-focus-visible:ring-2 peer-focus-visible:ring-green-400">
+                @opcion
+            </label>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Nombre { get; set; } = "";
+    [Parameter] public string Valor { get; set; } = "";
+    [Parameter] public bool Compacto { get; set; }
+    [Parameter] public EventCallback<string> OnCambiar { get; set; }
+}

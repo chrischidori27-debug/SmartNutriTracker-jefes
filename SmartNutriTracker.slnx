@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="SmartNutriTracker/SmartNutriTracker.csproj" />
+  <Project Path="SmartNutriTracker_biblio/SmartNutriTracker_biblio.csproj" />
+  <Project Path="SmartNutriTracker_blazor/SmartNutriTracker_blazor.csproj" />
+</Solution>

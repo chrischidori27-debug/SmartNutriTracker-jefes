@@ -1,0 +1,22 @@
+﻿<div class="bg-neutral-950 p-5">
+    <dt class="flex items-center gap-2 text-sm text-neutral-400">
+        @if (!string.IsNullOrEmpty(Icono))
+        {
+            <IconoSvg Nombre="@Icono" Class="@($"h-4 w-4 {IconoClase}")" />
+        }
+        @Etiqueta
+    </dt>
+    <dd class="mt-3 text-3xl font-extrabold tabular-nums leading-none text-white">@Valor</dd>
+    @if (Detalle is not null)
+    {
+        <p class="mt-2 text-xs text-neutral-500">@Detalle</p>
+    }
+</div>
+
+@code {
+    [Parameter] public string Etiqueta { get; set; } = "";
+    [Parameter] public string? Icono { get; set; }
+    [Parameter] public string IconoClase { get; set; } = "";
+    [Parameter] public RenderFragment? Valor { get; set; }
+    [Parameter] public RenderFragment? Detalle { get; set; }
+}

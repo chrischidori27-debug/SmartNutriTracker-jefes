@@ -1,0 +1,12 @@
+﻿@{
+    var categoria = Nutricion.CategoriaIMC(Imc);
+}
+<span class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-semibold @categoria.Chip @Class">
+    <span class="h-1.5 w-1.5 rounded-full @categoria.Punto"></span>
+    @categoria.Texto
+</span>
+
+@code {
+    [Parameter] public double Imc { get; set; }
+    [Parameter] public string Class { get; set; } = "";
+}
