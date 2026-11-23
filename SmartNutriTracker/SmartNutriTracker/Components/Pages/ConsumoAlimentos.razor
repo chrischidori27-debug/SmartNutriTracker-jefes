@@ -1,0 +1,471 @@
+@page "/consumo"
+
+@inject ConsumoServicio ConsumoSvc
+@inject AlimentoServicio CatalogoSvc
+@inject UsuarioSesion Sesion
+@inject NavigationManager Nav
+
+<PageTitle>Consumo de alimentos | SmartNutriTracker</PageTitle>
+
+<div class="consumo-page">
+
+    <div class="consumo-header">
+        <div>
+            <span class="tag">REGISTRO DE HÁBITOS</span>
+            <h1>Consumo de alimentos</h1>
+            <p>Registra lo que consumiste realmente y construye tu historial nutricional.</p>
+        </div>
+
+        <div class="fecha-box">
+            <span>FECHA DEL REGISTRO</span>
+            <input type="date" max="@HoyTexto" @bind="Fecha" @bind:after="CargarDiaAsync" />
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Mensaje))
+    {
+        <div class="mensaje @(OperacionExitosa ? "mensaje-exito" : "mensaje-error")">
+            @Mensaje
+        </div>
+    }
+
+    <div class="consumo-grid">
+
+        <section class="panel form-card">
+
+            <div class="card-heading">
+                <div>
+                    <span class="seccion-tag">NUEVO REGISTRO</span>
+                    <h2>¿Qué comiste?</h2>
+                </div>
+                <span class="form-number">01</span>
+            </div>
+
+            <div class="campo">
+                <label>Comida del día</label>
+                <div class="chips">
+                    @foreach (var comida in ConsumoServicio.TiposComida)
+                    {
+                        <button type="button"
+                                class="chip @(TipoComida == comida ? "chip-activo" : "")"
+                                @onclick="() => TipoComida = comida">
+                            @comida
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <div class="campo">
+                <label>Alimento</label>
+
+                <div class="buscador">
+                    <span>⌕</span>
+                    <input type="text"
+                           placeholder="Buscar alimento..."
+                           @bind="Busqueda"
+                           @bind:event="oninput" />
+                </div>
+
+                <select @bind="AlimentoId">
+                    <option value="0">Selecciona un alimento</option>
+                    @foreach (var alimento in AlimentosFiltrados)
+                    {
+                        <option value="@alimento.Id">@alimento.Nombre · @alimento.Porcion</option>
+                    }
+                </select>
+            </div>
+
+            <div class="campo">
+                <label>Porciones consumidas</label>
+                <div class="stepper">
+                    <button type="button" @onclick="() => CambiarPorciones(-0.5m)">−</button>
+                    <input type="number"
+                           step="0.5"
+                           min="0.5"
+                           max="20"
+                           @bind="Porciones"
+                           @bind:event="oninput" />
+                    <button type="button" @onclick="() => CambiarPorciones(0.5m)">+</button>
+                </div>
+                <small>Cada porción equivale a la porción de referencia del alimento.</small>
+            </div>
+
+            @if (AlimentoSeleccionado != null)
+            {
+                <div class="preview">
+                    <div class="preview-top">
+                        <strong>@AlimentoSeleccionado.Nombre</strong>
+                        <span>@Num(Porciones) × @AlimentoSeleccionado.Porcion</span>
+                    </div>
+
+                    <div class="preview-macros">
+                        <div>
+                            <span>Calorías</span>
+                            <strong>@Num(AlimentoSeleccionado.Calorias * Porciones) kcal</strong>
+                        </div>
+                        <div>
+                            <span>Proteínas</span>
+                            <strong>@Num(AlimentoSeleccionado.Proteinas * Porciones) g</strong>
+                        </div>
+                        <div>
+                            <span>Carbohidratos</span>
+                            <strong>@Num(AlimentoSeleccionado.Carbohidratos * Porciones) g</strong>
+                        </div>
+                        <div>
+                            <span>Grasas</span>
+                            <strong>@Num(AlimentoSeleccionado.Grasas * Porciones) g</strong>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <button type="button"
+                    class="btn-guardar"
+                    disabled="@Guardando"
+                    @onclick="RegistrarAsync">
+                @(Guardando ? "Guardando..." : "Registrar consumo")
+            </button>
+
+        </section>
+
+        <div class="columna-derecha">
+
+            <section class="panel resumen-card">
+
+                <div class="card-heading">
+                    <div>
+                        <span class="seccion-tag">RESUMEN DEL DÍA</span>
+                        <h2>@Fecha.ToString("dd/MM/yyyy")</h2>
+                    </div>
+                    <span class="total-registros">@RegistrosDia.Count registros</span>
+                </div>
+
+                <div class="calorias-box">
+                    <div class="calorias-top">
+                        <div>
+                            <span>CALORÍAS CONSUMIDAS</span>
+                            <strong>@Num(TotalCalorias) <small>kcal</small></strong>
+                        </div>
+                        <span class="meta">Referencia diaria: @MetaCalorias kcal</span>
+                    </div>
+
+                    <div class="barra">
+                        <div class="barra-fill @(TotalCalorias > MetaCalorias ? "barra-exceso" : "")"
+                             style="width:@Pct(TotalCalorias, MetaCalorias)%"></div>
+                    </div>
+                </div>
+
+                <div class="stats">
+                    <div class="stat">
+                        <span>PROTEÍNAS</span>
+                        <strong>@Num(TotalProteinas) g</strong>
+                    </div>
+                    <div class="stat">
+                        <span>CARBOHIDRATOS</span>
+                        <strong>@Num(TotalCarbohidratos) g</strong>
+                    </div>
+                    <div class="stat">
+                        <span>GRASAS</span>
+                        <strong>@Num(TotalGrasas) g</strong>
+                    </div>
+                </div>
+
+                @if (TotalGramos > 0)
+                {
+                    <div class="distribucion">
+                        <div class="dist-proteina" style="width:@PctProteina%"></div>
+                        <div class="dist-carbo" style="width:@PctCarbohidrato%"></div>
+                        <div class="dist-grasa" style="width:@PctGrasa%"></div>
+                    </div>
+
+                    <div class="leyenda">
+                        <span><i class="punto dist-proteina"></i>Proteínas @PctProteina%</span>
+                        <span><i class="punto dist-carbo"></i>Carbohidratos @PctCarbohidrato%</span>
+                        <span><i class="punto dist-grasa"></i>Grasas @PctGrasa%</span>
+                    </div>
+                }
+
+            </section>
+
+            <section class="panel historial-card">
+
+                <div class="card-heading">
+                    <div>
+                        <span class="seccion-tag">HISTORIAL</span>
+                        <h2>Lo que consumiste</h2>
+                    </div>
+                </div>
+
+                @if (Cargando)
+                {
+                    <p class="vacio">Cargando registros...</p>
+                }
+                else if (RegistrosDia.Count == 0)
+                {
+                    <p class="vacio">Aún no hay consumos registrados para esta fecha.</p>
+                }
+                else
+                {
+                    foreach (var comida in ConsumoServicio.TiposComida)
+                    {
+                        var items = RegistrosDia.Where(c => c.TipoComida == comida).ToList();
+
+                        if (items.Count > 0)
+                        {
+                            <div class="grupo">
+                                <div class="grupo-top">
+                                    <h3>@comida</h3>
+                                    <span>@Num(items.Sum(i => i.Calorias)) kcal</span>
+                                </div>
+
+                                @foreach (var item in items)
+                                {
+                                    <div class="item">
+                                        <div class="item-info">
+                                            <strong>@item.Alimento.Nombre</strong>
+                                            <span>
+                                                @Num(item.Porciones) × @item.Alimento.Porcion ·
+                                                P @Num(item.Proteinas) g ·
+                                                C @Num(item.Carbohidratos) g ·
+                                                G @Num(item.Grasas) g
+                                            </span>
+                                        </div>
+
+                                        <div class="item-acciones">
+                                            <span class="item-kcal">@Num(item.Calorias) kcal</span>
+
+                                            @if (IdPendienteEliminar == item.Id)
+                                            {
+                                                <button type="button" class="btn-eliminar" @onclick="() => EliminarAsync(item.Id)">Confirmar</button>
+                                                <button type="button" class="btn-cancelar" @onclick="() => IdPendienteEliminar = 0">No</button>
+                                            }
+                                            else
+                                            {
+                                                <button type="button" class="btn-cancelar" @onclick="() => IdPendienteEliminar = item.Id">Eliminar</button>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    }
+                }
+
+            </section>
+
+            <section class="panel semana-card">
+
+                <div class="card-heading">
+                    <div>
+                        <span class="seccion-tag">ÚLTIMOS 7 DÍAS</span>
+                        <h2>Calorías por día</h2>
+                    </div>
+                </div>
+
+                <div class="semana">
+                    @foreach (var dia in Semana)
+                    {
+                        <button type="button"
+                                class="dia @(dia.Fecha == Fecha.Date ? "dia-activo" : "")"
+                                @onclick="() => IrADiaAsync(dia.Fecha)">
+                            <span class="dia-valor">@Num(dia.Calorias)</span>
+                            <div class="dia-barra">
+                                <div class="dia-fill" style="height:@Pct(dia.Calorias, MaxSemana)%"></div>
+                            </div>
+                            <span class="dia-nombre">@dia.Fecha.ToString("dd/MM")</span>
+                        </button>
+                    }
+                </div>
+
+            </section>
+
+        </div>
+
+    </div>
+
+</div>
+
+@code {
+
+    private const int MetaCalorias = 2000;
+
+    private List<Alimento> ListaAlimentos = new();
+    private List<ConsumoAlimento> RegistrosDia = new();
+    private List<ResumenDia> Semana = new();
+
+    private DateTime Fecha = DateTime.Today;
+    private string TipoComida = "Desayuno";
+    private int AlimentoId = 0;
+    private decimal Porciones = 1;
+    private string Busqueda = "";
+
+    private string Mensaje = "";
+    private bool OperacionExitosa = false;
+    private bool Cargando = true;
+    private bool Guardando = false;
+    private int IdPendienteEliminar = 0;
+
+    private string HoyTexto => DateTime.Today.ToString("yyyy-MM-dd");
+
+    private Alimento? AlimentoSeleccionado =>
+        ListaAlimentos.FirstOrDefault(a => a.Id == AlimentoId);
+
+    private List<Alimento> AlimentosFiltrados =>
+        string.IsNullOrWhiteSpace(Busqueda)
+            ? ListaAlimentos
+            : ListaAlimentos.Where(a =>
+                a.Nombre.Contains(Busqueda, StringComparison.OrdinalIgnoreCase) ||
+                (a.Categoria != null &&
+                 a.Categoria.Contains(Busqueda, StringComparison.OrdinalIgnoreCase))
+              ).ToList();
+
+    private decimal TotalCalorias => RegistrosDia.Sum(c => c.Calorias);
+    private decimal TotalProteinas => RegistrosDia.Sum(c => c.Proteinas);
+    private decimal TotalCarbohidratos => RegistrosDia.Sum(c => c.Carbohidratos);
+    private decimal TotalGrasas => RegistrosDia.Sum(c => c.Grasas);
+    private decimal TotalGramos => TotalProteinas + TotalCarbohidratos + TotalGrasas;
+
+    private int PctProteina => TotalGramos == 0 ? 0 : (int)Math.Round(TotalProteinas * 100 / TotalGramos);
+    private int PctCarbohidrato => TotalGramos == 0 ? 0 : (int)Math.Round(TotalCarbohidratos * 100 / TotalGramos);
+    private int PctGrasa => TotalGramos == 0 ? 0 : Math.Max(0, 100 - PctProteina - PctCarbohidrato);
+
+    private decimal MaxSemana => Semana.Count == 0 ? 0 : Semana.Max(d => d.Calorias);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Sesion.EstaAutenticado)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+
+        try
+        {
+            ListaAlimentos = await CatalogoSvc.ListarAsync();
+        }
+        catch (Exception)
+        {
+            MostrarMensaje("No se pudo cargar el catálogo de alimentos.", false);
+        }
+
+        await CargarDiaAsync();
+    }
+
+    private async Task CargarDiaAsync()
+    {
+        Cargando = true;
+        IdPendienteEliminar = 0;
+
+        try
+        {
+            RegistrosDia = await ConsumoSvc.ListarPorDiaAsync(Sesion.UsuarioId, Fecha);
+            Semana = await ConsumoSvc.ResumenSemanalAsync(Sesion.UsuarioId, Fecha);
+        }
+        catch (Exception)
+        {
+            MostrarMensaje("No se pudo cargar el historial.", false);
+        }
+        finally
+        {
+            Cargando = false;
+        }
+    }
+
+    private async Task IrADiaAsync(DateTime dia)
+    {
+        Fecha = dia;
+        await CargarDiaAsync();
+    }
+
+    private async Task RegistrarAsync()
+    {
+        if (Guardando)
+        {
+            return;
+        }
+
+        Guardando = true;
+        Mensaje = "";
+
+        try
+        {
+            var resultado = await ConsumoSvc.RegistrarAsync(
+                Sesion.UsuarioId,
+                AlimentoId,
+                TipoComida,
+                Porciones,
+                Fecha);
+
+            MostrarMensaje(resultado.Mensaje, resultado.Exito);
+
+            if (resultado.Exito)
+            {
+                AlimentoId = 0;
+                Porciones = 1;
+                Busqueda = "";
+                await CargarDiaAsync();
+            }
+        }
+        catch (Exception)
+        {
+            MostrarMensaje("Ocurrió un error al registrar el consumo.", false);
+        }
+        finally
+        {
+            Guardando = false;
+        }
+    }
+
+    private async Task EliminarAsync(int id)
+    {
+        try
+        {
+            var resultado = await ConsumoSvc.EliminarAsync(Sesion.UsuarioId, id);
+
+            MostrarMensaje(resultado.Mensaje, resultado.Exito);
+
+            await CargarDiaAsync();
+        }
+        catch (Exception)
+        {
+            MostrarMensaje("Ocurrió un error al eliminar el registro.", false);
+        }
+    }
+
+    private void CambiarPorciones(decimal cambio)
+    {
+        var nuevo = Porciones + cambio;
+
+        if (nuevo < 0.5m)
+        {
+            nuevo = 0.5m;
+        }
+
+        if (nuevo > 20)
+        {
+            nuevo = 20;
+        }
+
+        Porciones = nuevo;
+    }
+
+    private void MostrarMensaje(string mensaje, bool exito)
+    {
+        Mensaje = mensaje;
+        OperacionExitosa = exito;
+    }
+
+    private static string Num(decimal valor) => valor.ToString("0.##");
+
+    private static int Pct(decimal valor, decimal total)
+    {
+        if (total <= 0)
+        {
+            return 0;
+        }
+
+        var pct = (int)Math.Round(valor * 100 / total);
+
+        return Math.Clamp(pct, 0, 100);
+    }
+}

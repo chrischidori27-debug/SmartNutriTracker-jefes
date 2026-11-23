@@ -1,0 +1,485 @@
+
+.alimentos-page {
+    color: #ffffff;
+    padding: 34px;
+    min-height: 100%;
+    background: #000000;
+    font-family: 'Manrope', sans-serif;
+}
+
+.alimentos-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.alimentos-tag,
+.seccion-tag {
+    color: #22c55e;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.8px;
+}
+
+.alimentos-header h1 {
+    font-size: 30px;
+    font-weight: 800;
+    margin: 9px 0;
+    letter-spacing: -1px;
+}
+
+.alimentos-header p {
+    color: #a3a3a3;
+    font-size: 13px;
+    margin: 0;
+}
+
+.total-alimentos {
+    background: #0a0a0a;
+    border: 1px solid #262626;
+    border-radius: 14px;
+    padding: 17px 23px;
+    min-width: 150px;
+}
+
+    .total-alimentos span {
+        display: block;
+        color: #737373;
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 1px;
+    }
+
+    .total-alimentos strong {
+        display: block;
+        color: #22c55e;
+        font-size: 30px;
+        margin-top: 5px;
+    }
+
+.alimentos-grid {
+    display: grid;
+    grid-template-columns: minmax(300px, 0.85fr) minmax(0, 1.35fr);
+    gap: 22px;
+    align-items: start;
+}
+
+.alimento-form-card,
+.alimento-list-card {
+    background: #0a0a0a;
+    border: 1px solid #262626;
+    border-radius: 16px;
+    padding: 24px;
+    min-width: 0;
+}
+
+.card-heading,
+.list-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+    .card-heading h2,
+    .list-heading h2 {
+        font-size: 19px;
+        font-weight: 800;
+        margin: 7px 0 0;
+    }
+
+.form-number {
+    color: #22c55e;
+    font-size: 25px;
+    font-weight: 800;
+}
+
+.campo {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 17px;
+}
+
+    .campo label {
+        color: #d4d4d4;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .campo input,
+    .campo textarea {
+        width: 100%;
+        min-height: 43px;
+        padding: 11px 13px;
+        background: #050505;
+        color: #ffffff;
+        border: 1px solid #303030;
+        border-radius: 9px;
+        outline: none;
+        font-family: inherit;
+        font-size: 12px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .campo textarea {
+        min-height: 75px;
+        resize: vertical;
+    }
+
+        .campo input:focus,
+        .campo textarea:focus {
+            border-color: #22c55e;
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.10);
+        }
+
+        .campo input::placeholder,
+        .campo textarea::placeholder {
+            color: #525252;
+        }
+
+    .campo small {
+        color: #737373;
+        font-size: 10px;
+    }
+
+.nutrientes-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #262626;
+    padding-top: 20px;
+    margin-top: 10px;
+    margin-bottom: 16px;
+}
+
+    .nutrientes-heading h3 {
+        font-size: 13px;
+        font-weight: 800;
+        margin: 0;
+    }
+
+    .nutrientes-heading span {
+        color: #22c55e;
+        font-size: 10px;
+    }
+
+.nutrientes-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 13px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.btn-guardar,
+.btn-cancelar,
+.btn-editar,
+.btn-eliminar {
+    border: 0;
+    border-radius: 8px;
+    padding: 11px 15px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-guardar {
+    flex: 1;
+    background: #22c55e;
+    color: #000000;
+}
+
+    .btn-guardar:hover {
+        background: #4ade80;
+    }
+
+    .btn-guardar:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+.btn-cancelar {
+    background: transparent;
+    color: #d4d4d4;
+    border: 1px solid #383838;
+}
+
+    .btn-cancelar:hover {
+        background: #1a1a1a;
+    }
+
+.form-required {
+    color: #737373;
+    font-size: 10px;
+    margin: 15px 0 0;
+}
+
+.buscador {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #050505;
+    border: 1px solid #303030;
+    border-radius: 9px;
+    padding: 0 13px;
+    margin-bottom: 20px;
+}
+
+    .buscador span {
+        color: #22c55e;
+        font-size: 22px;
+    }
+
+    .buscador input {
+        width: 100%;
+        height: 43px;
+        border: none;
+        outline: none;
+        background: transparent;
+        color: #ffffff;
+        font-family: inherit;
+        font-size: 11px;
+    }
+
+        .buscador input::placeholder {
+            color: #737373;
+        }
+
+.alimentos-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+}
+
+.alimento-item {
+    background: #050505;
+    border: 1px solid #262626;
+    border-radius: 12px;
+    padding: 17px;
+    transition: border-color 0.2s;
+}
+
+    .alimento-item:hover {
+        border-color: #404040;
+    }
+
+.alimento-item-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.alimento-item h3 {
+    font-size: 14px;
+    font-weight: 800;
+    margin: 0 0 7px;
+}
+
+.categoria {
+    display: inline-block;
+    background: rgba(34, 197, 94, 0.09);
+    color: #4ade80;
+    border-radius: 5px;
+    padding: 4px 8px;
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.alimento-id {
+    color: #737373;
+    font-size: 10px;
+}
+
+.porcion {
+    color: #a3a3a3;
+    font-size: 10px;
+    margin: 13px 0;
+}
+
+.resumen-nutricional {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 8px;
+    padding: 13px 0;
+    border-top: 1px solid #202020;
+    border-bottom: 1px solid #202020;
+}
+
+    .resumen-nutricional div {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        min-width: 0;
+    }
+
+    .resumen-nutricional strong {
+        color: #ffffff;
+        font-size: 12px;
+        font-weight: 800;
+        overflow-wrap: anywhere;
+    }
+
+    .resumen-nutricional span {
+        color: #737373;
+        font-size: 9px;
+    }
+
+.alimento-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 13px;
+}
+
+.btn-editar {
+    background: #171717;
+    border: 1px solid #333333;
+    color: #e5e5e5;
+}
+
+    .btn-editar:hover {
+        border-color: #22c55e;
+        color: #4ade80;
+    }
+
+.btn-eliminar {
+    background: rgba(239, 68, 68, 0.10);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    color: #f87171;
+}
+
+    .btn-eliminar:hover {
+        background: rgba(239, 68, 68, 0.18);
+    }
+
+.confirmacion {
+    background: #151010;
+    border: 1px solid #542626;
+    border-radius: 9px;
+    padding: 13px;
+    margin-top: 13px;
+}
+
+    .confirmacion p {
+        color: #fca5a5;
+        font-size: 11px;
+        margin: 0 0 12px;
+    }
+
+    .confirmacion div {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+.estado-vacio {
+    padding: 45px 15px;
+    text-align: center;
+    color: #737373;
+    font-size: 12px;
+}
+
+    .estado-vacio strong {
+        display: block;
+        color: #d4d4d4;
+        font-size: 13px;
+        margin-top: 10px;
+    }
+
+    .estado-vacio p {
+        font-size: 11px;
+    }
+
+.estado-icono {
+    color: #22c55e;
+    font-size: 28px;
+}
+
+.list-footer {
+    border-top: 1px solid #262626;
+    padding-top: 15px;
+    margin-top: 18px;
+    color: #737373;
+    font-size: 10px;
+}
+
+.mensaje {
+    border-radius: 9px;
+    padding: 13px 16px;
+    margin-bottom: 18px;
+    font-size: 12px;
+}
+
+.mensaje-exito {
+    background: rgba(34, 197, 94, 0.10);
+    border: 1px solid rgba(34, 197, 94, 0.25);
+    color: #4ade80;
+}
+
+.mensaje-error {
+    background: rgba(239, 68, 68, 0.10);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    color: #f87171;
+}
+
+button:focus-visible {
+    outline: 2px solid #4ade80;
+    outline-offset: 3px;
+}
+
+@media (max-width: 1050px) {
+    .alimentos-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 650px) {
+    .alimentos-page {
+        padding: 20px 14px;
+    }
+
+    .alimentos-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+        .alimentos-header h1 {
+            font-size: 25px;
+        }
+
+    .total-alimentos {
+        width: 100%;
+    }
+
+    .alimento-form-card,
+    .alimento-list-card {
+        padding: 17px;
+    }
+
+    .resumen-nutricional {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        row-gap: 14px;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        transition-duration: 0.01ms !important;
+    }
+}

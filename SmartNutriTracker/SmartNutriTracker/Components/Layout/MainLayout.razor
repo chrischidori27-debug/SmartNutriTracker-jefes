@@ -1,0 +1,85 @@
+﻿@inherits LayoutComponentBase
+@implements IDisposable
+@inject NavigationManager Navigation
+
+<div class="page @(EsPaginaPublica ? "public-page" : "")">
+
+    @if (!EsPaginaPublica)
+    {
+        <aside class="sidebar">
+            <NavMenu />
+        </aside>
+    }
+
+    <main class="main-content">
+
+        @if (!EsPaginaPublica)
+        {
+            <header class="top-header">
+
+                <div>
+                    <span class="header-subtitle">
+                        PLATAFORMA DE GESTIÓN NUTRICIONAL
+                    </span>
+
+                    <h5>SmartNutriTracker</h5>
+                </div>
+
+                <div class="header-status">
+                    <span class="status-indicator"></span>
+                    Sistema Beta
+                </div>
+
+            </header>
+        }
+
+        <article class="content-area @(EsPaginaPublica ? "public-content" : "")">
+            @Body
+        </article>
+
+    </main>
+
+</div>
+
+@code {
+
+    private bool EsPaginaPublica = false;
+
+    protected override void OnInitialized()
+    {
+        ActualizarPagina();
+        Navigation.LocationChanged += AlCambiarPagina;
+    }
+
+    private void ActualizarPagina()
+    {
+        string ruta = Navigation.ToBaseRelativePath(Navigation.Uri);
+
+        ruta = ruta.Split('?')[0].Trim('/');
+
+        if (ruta == "login" || ruta == "registro")
+        {
+            EsPaginaPublica = true;
+        }
+        else
+        {
+            EsPaginaPublica = false;
+        }
+    }
+
+    private void AlCambiarPagina(
+        object? sender,
+        Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        InvokeAsync(() =>
+        {
+            ActualizarPagina();
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= AlCambiarPagina;
+    }
+}

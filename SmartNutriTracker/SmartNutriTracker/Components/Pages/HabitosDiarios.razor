@@ -1,0 +1,369 @@
+@page "/habitos"
+
+@inject HabitoServicio HabitoSvc
+@inject UsuarioSesion Sesion
+@inject NavigationManager Nav
+
+<PageTitle>Hábitos diarios | SmartNutriTracker</PageTitle>
+
+<div class="habitos-page">
+
+    <div class="habitos-header">
+        <div>
+            <span class="tag">REGISTRO DE HÁBITOS</span>
+            <h1>Hábitos diarios</h1>
+            <p>Completa tu valoración diaria con tu sueño, agua y actividad física.</p>
+        </div>
+
+        <div class="fecha-box">
+            <span>FECHA DEL REGISTRO</span>
+            <input type="date" max="@HoyTexto" @bind="Fecha" @bind:after="CargarDiaAsync" />
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Mensaje))
+    {
+        <div class="mensaje @(OperacionExitosa ? "mensaje-exito" : "mensaje-error")">
+            @Mensaje
+        </div>
+    }
+
+    <section class="panel valoracion">
+        <div>
+            <span class="seccion-tag">VALORACIÓN DEL DÍA</span>
+            <h2>@TituloValoracion</h2>
+            <p>@MetasCumplidas de 3 metas cumplidas · @(Existe ? "Registro guardado" : "Aún sin guardar")</p>
+        </div>
+
+        <div class="metas">
+            <span class="meta-punto @(CumpleSueno ? "meta-ok" : "")">Sueño</span>
+            <span class="meta-punto @(CumpleAgua ? "meta-ok" : "")">Agua</span>
+            <span class="meta-punto @(CumpleActividad ? "meta-ok" : "")">Actividad</span>
+        </div>
+    </section>
+
+    <div class="metricas">
+
+        <section class="panel metrica">
+            <div class="metrica-top">
+                <span class="metrica-icono">😴</span>
+                <div>
+                    <h3>Horas de sueño</h3>
+                    <small>Meta: @Num(MetaSueno) horas por noche</small>
+                </div>
+            </div>
+
+            <div class="stepper">
+                <button type="button" @onclick="() => CambiarSueno(-0.5m)">−</button>
+                <input type="number" step="0.5" min="0" max="24" @bind="HorasSueno" @bind:event="oninput" />
+                <button type="button" @onclick="() => CambiarSueno(0.5m)">+</button>
+            </div>
+
+            <div class="barra">
+                <div class="barra-fill @(CumpleSueno ? "barra-ok" : "")" style="width:@Pct(HorasSueno, MetaSueno)%"></div>
+            </div>
+
+            <span class="estado @(CumpleSueno ? "estado-ok" : "")">
+                @(CumpleSueno ? "Meta alcanzada" : "Faltan " + Num(MetaSueno - HorasSueno) + " h")
+            </span>
+        </section>
+
+        <section class="panel metrica">
+            <div class="metrica-top">
+                <span class="metrica-icono">💧</span>
+                <div>
+                    <h3>Consumo de agua</h3>
+                    <small>Meta: @Num(MetaAgua) litros al día</small>
+                </div>
+            </div>
+
+            <div class="stepper">
+                <button type="button" @onclick="() => CambiarAgua(-0.25m)">−</button>
+                <input type="number" step="0.25" min="0" max="10" @bind="AguaLitros" @bind:event="oninput" />
+                <button type="button" @onclick="() => CambiarAgua(0.25m)">+</button>
+            </div>
+
+            <div class="barra">
+                <div class="barra-fill @(CumpleAgua ? "barra-ok" : "")" style="width:@Pct(AguaLitros, MetaAgua)%"></div>
+            </div>
+
+            <span class="estado @(CumpleAgua ? "estado-ok" : "")">
+                @(CumpleAgua ? "Meta alcanzada" : "Faltan " + Num(MetaAgua - AguaLitros) + " L")
+            </span>
+        </section>
+
+        <section class="panel metrica">
+            <div class="metrica-top">
+                <span class="metrica-icono">🏃</span>
+                <div>
+                    <h3>Actividad física</h3>
+                    <small>Meta: @MetaActividad minutos al día</small>
+                </div>
+            </div>
+
+            <div class="stepper">
+                <button type="button" @onclick="() => CambiarActividad(-5)">−</button>
+                <input type="number" step="5" min="0" max="600" @bind="MinutosActividad" @bind:event="oninput" />
+                <button type="button" @onclick="() => CambiarActividad(5)">+</button>
+            </div>
+
+            <div class="barra">
+                <div class="barra-fill @(CumpleActividad ? "barra-ok" : "")" style="width:@Pct(MinutosActividad, MetaActividad)%"></div>
+            </div>
+
+            <span class="estado @(CumpleActividad ? "estado-ok" : "")">
+                @(CumpleActividad ? "Meta alcanzada" : "Faltan " + (MetaActividad - MinutosActividad) + " min")
+            </span>
+        </section>
+
+    </div>
+
+    <section class="panel actividad-card">
+
+        <div class="card-heading">
+            <div>
+                <span class="seccion-tag">DETALLE</span>
+                <h2>Tipo de actividad</h2>
+            </div>
+        </div>
+
+        <div class="chips">
+            @foreach (var tipo in TiposActividad)
+            {
+                <button type="button"
+                        class="chip @(TipoActividad == tipo ? "chip-activo" : "")"
+                        @onclick="() => SeleccionarActividad(tipo)">
+                    @tipo
+                </button>
+            }
+        </div>
+
+        <button type="button"
+                class="btn-guardar"
+                disabled="@Guardando"
+                @onclick="GuardarAsync">
+            @(Guardando ? "Guardando..." : Existe ? "Actualizar hábitos del día" : "Guardar hábitos del día")
+        </button>
+
+    </section>
+
+    <section class="panel semana-card">
+
+        <div class="card-heading">
+            <div>
+                <span class="seccion-tag">ÚLTIMOS 7 DÍAS</span>
+                <h2>Historial reciente</h2>
+            </div>
+        </div>
+
+        <div class="tabla">
+            <div class="fila fila-cabecera">
+                <span>FECHA</span>
+                <span>SUEÑO</span>
+                <span>AGUA</span>
+                <span>ACTIVIDAD</span>
+                <span>METAS</span>
+            </div>
+
+            @foreach (var dia in Semana)
+            {
+                var registro = Recientes.FirstOrDefault(h => h.Fecha == dia);
+
+                <button type="button"
+                        class="fila fila-dato @(dia == Fecha.Date ? "fila-activa" : "")"
+                        @onclick="() => IrADiaAsync(dia)">
+                    <span>@dia.ToString("dd/MM/yyyy")</span>
+
+                    @if (registro == null)
+                    {
+                        <span class="sin-dato">—</span>
+                        <span class="sin-dato">—</span>
+                        <span class="sin-dato">—</span>
+                        <span class="sin-dato">Sin registro</span>
+                    }
+                    else
+                    {
+                        <span>@Num(registro.HorasSueno) h</span>
+                        <span>@Num(registro.AguaLitros) L</span>
+                        <span>@DescripcionActividad(registro)</span>
+                        <span class="metas-fila">@MetasDe(registro) / 3</span>
+                    }
+                </button>
+            }
+        </div>
+
+    </section>
+
+</div>
+
+@code {
+
+    private const decimal MetaSueno = 8;
+    private const decimal MetaAgua = 2;
+    private const int MetaActividad = 60;
+
+    private static readonly string[] TiposActividad =
+    {
+        "Caminata", "Correr", "Fútbol", "Ciclismo", "Natación", "Baile", "Otro"
+    };
+
+    private List<HabitoDiario> Recientes = new();
+    private List<DateTime> Semana = new();
+
+    private DateTime Fecha = DateTime.Today;
+    private decimal HorasSueno = 0;
+    private decimal AguaLitros = 0;
+    private int MinutosActividad = 0;
+    private string TipoActividad = "";
+
+    private bool Existe = false;
+    private string Mensaje = "";
+    private bool OperacionExitosa = false;
+    private bool Guardando = false;
+
+    private string HoyTexto => DateTime.Today.ToString("yyyy-MM-dd");
+
+    private bool CumpleSueno => HorasSueno >= MetaSueno;
+    private bool CumpleAgua => AguaLitros >= MetaAgua;
+    private bool CumpleActividad => MinutosActividad >= MetaActividad;
+
+    private int MetasCumplidas =>
+        (CumpleSueno ? 1 : 0) + (CumpleAgua ? 1 : 0) + (CumpleActividad ? 1 : 0);
+
+    private string TituloValoracion => MetasCumplidas switch
+    {
+        3 => "Excelente día",
+        2 => "Muy buen día",
+        1 => "Puedes mejorar",
+        _ => "Registra tus hábitos"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Sesion.EstaAutenticado)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+
+        await CargarDiaAsync();
+    }
+
+    private async Task CargarDiaAsync()
+    {
+        try
+        {
+            var habito = await HabitoSvc.ObtenerAsync(Sesion.UsuarioId, Fecha);
+
+            Existe = habito != null;
+            HorasSueno = habito?.HorasSueno ?? 0;
+            AguaLitros = habito?.AguaLitros ?? 0;
+            MinutosActividad = habito?.MinutosActividad ?? 0;
+            TipoActividad = habito?.TipoActividad ?? "";
+
+            Recientes = await HabitoSvc.ListarRecientesAsync(Sesion.UsuarioId, Fecha, 7);
+
+            Semana = Enumerable.Range(0, 7)
+                .Select(i => Fecha.Date.AddDays(-6 + i))
+                .ToList();
+        }
+        catch (Exception)
+        {
+            MostrarMensaje("No se pudieron cargar los hábitos.", false);
+        }
+    }
+
+    private async Task IrADiaAsync(DateTime dia)
+    {
+        Fecha = dia;
+        Mensaje = "";
+        await CargarDiaAsync();
+    }
+
+    private async Task GuardarAsync()
+    {
+        if (Guardando)
+        {
+            return;
+        }
+
+        Guardando = true;
+        Mensaje = "";
+
+        try
+        {
+            var resultado = await HabitoSvc.GuardarAsync(
+                Sesion.UsuarioId,
+                Fecha,
+                HorasSueno,
+                AguaLitros,
+                MinutosActividad,
+                TipoActividad);
+
+            MostrarMensaje(resultado.Mensaje, resultado.Exito);
+
+            if (resultado.Exito)
+            {
+                await CargarDiaAsync();
+            }
+        }
+        catch (Exception)
+        {
+            MostrarMensaje("Ocurrió un error al guardar los hábitos.", false);
+        }
+        finally
+        {
+            Guardando = false;
+        }
+    }
+
+    private void CambiarSueno(decimal cambio)
+    {
+        HorasSueno = Math.Clamp(HorasSueno + cambio, 0, 24);
+    }
+
+    private void CambiarAgua(decimal cambio)
+    {
+        AguaLitros = Math.Clamp(AguaLitros + cambio, 0, 10);
+    }
+
+    private void CambiarActividad(int cambio)
+    {
+        MinutosActividad = Math.Clamp(MinutosActividad + cambio, 0, 600);
+    }
+
+    private void SeleccionarActividad(string tipo)
+    {
+        TipoActividad = TipoActividad == tipo ? "" : tipo;
+    }
+
+    private static string DescripcionActividad(HabitoDiario h) =>
+        string.IsNullOrEmpty(h.TipoActividad)
+            ? h.MinutosActividad + " min"
+            : h.MinutosActividad + " min · " + h.TipoActividad;
+
+    private int MetasDe(HabitoDiario h) =>
+        (h.HorasSueno >= MetaSueno ? 1 : 0) +
+        (h.AguaLitros >= MetaAgua ? 1 : 0) +
+        (h.MinutosActividad >= MetaActividad ? 1 : 0);
+
+    private void MostrarMensaje(string mensaje, bool exito)
+    {
+        Mensaje = mensaje;
+        OperacionExitosa = exito;
+    }
+
+    private static string Num(decimal valor) => valor.ToString("0.##");
+
+    private static int Pct(decimal valor, decimal meta)
+    {
+        if (meta <= 0)
+        {
+            return 0;
+        }
+
+        var pct = (int)Math.Round(valor * 100 / meta);
+
+        return Math.Clamp(pct, 0, 100);
+    }
+}
