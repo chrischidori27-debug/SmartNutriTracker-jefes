@@ -1,8 +1,6 @@
-@"
-.vs/
-bin/
-obj/
+.vs
+bin
+obj
 *.user
 *.suo
 **/appsettings.Development.json
-"@ | Set-Content .gitignore
