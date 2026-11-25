@@ -221,6 +221,10 @@
     private bool OperacionExitosa = false;
     private bool Guardando = false;
 
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "fecha")]
+    public string? FechaParametro { get; set; }
+
     private string HoyTexto => DateTime.Today.ToString("yyyy-MM-dd");
 
     private bool CumpleSueno => HorasSueno >= MetaSueno;
@@ -244,6 +248,16 @@
         {
             Nav.NavigateTo("/login");
             return;
+        }
+
+        if (System.DateTime.TryParseExact(
+                FechaParametro,
+                "yyyy-MM-dd",
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None,
+                out var fechaConsulta) && fechaConsulta.Date <= DateTime.Today)
+        {
+            Fecha = fechaConsulta.Date;
         }
 
         await CargarDiaAsync();

@@ -1,0 +1,427 @@
+@page "/historial"
+
+@inject HabitoServicio HabitoSvc
+@inject ConsumoServicio ConsumoSvc
+@inject UsuarioSesion Sesion
+@inject NavigationManager Nav
+
+<PageTitle>Historial de hábitos | SmartNutriTracker</PageTitle>
+
+<div class="historial-page">
+
+    <div class="historial-header">
+        <div>
+            <span class="tag">REGISTRO DE HÁBITOS</span>
+            <h1>Historial de hábitos</h1>
+            <p>Revisa tu evolución e identifica mejoras o retrocesos frente al período anterior.</p>
+        </div>
+
+        <div class="chips">
+            @foreach (var opcion in Periodos)
+            {
+                <button type="button"
+                        class="chip @(PeriodoDias == opcion ? "chip-activo" : "")"
+                        @onclick="() => CambiarPeriodoAsync(opcion)">
+                    @opcion días
+                </button>
+            }
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Mensaje))
+    {
+        <div class="mensaje mensaje-error">@Mensaje</div>
+    }
+
+    @if (Cargando)
+    {
+        <p class="vacio">Cargando historial...</p>
+    }
+    else
+    {
+        <div class="resumen">
+
+            <div class="stat">
+                <span>DÍAS REGISTRADOS</span>
+                <strong>@HabitosActuales.Count / @PeriodoDias</strong>
+                <em class="tend-neutra">Metas cumplidas: @MetasTotales de @(HabitosActuales.Count * 3)</em>
+            </div>
+
+            <div class="stat">
+                <span>SUEÑO PROMEDIO</span>
+                <strong>@Num(PromSueno) h</strong>
+                <em class="@ClaseTendencia(PromSueno, PrevSueno)">@TextoTendencia(PromSueno, PrevSueno, " h")</em>
+            </div>
+
+            <div class="stat">
+                <span>AGUA PROMEDIO</span>
+                <strong>@Num(PromAgua) L</strong>
+                <em class="@ClaseTendencia(PromAgua, PrevAgua)">@TextoTendencia(PromAgua, PrevAgua, " L")</em>
+            </div>
+
+            <div class="stat">
+                <span>ACTIVIDAD PROMEDIO</span>
+                <strong>@Num(PromActividad) min</strong>
+                <em class="@ClaseTendencia(PromActividad, PrevActividad)">@TextoTendencia(PromActividad, PrevActividad, " min")</em>
+            </div>
+
+            <div class="stat">
+                <span>CALORÍAS POR DÍA</span>
+                <strong>@Num(PromCalorias) kcal</strong>
+                <em class="tend-neutra">@TextoCalorias</em>
+            </div>
+
+        </div>
+
+        <section class="panel">
+
+            <div class="card-heading">
+                <div>
+                    <span class="seccion-tag">EVOLUCIÓN</span>
+                    <h2>@Metrica por día</h2>
+                </div>
+
+                <div class="chips">
+                    @foreach (var opcion in Metricas)
+                    {
+                        <button type="button"
+                                class="chip @(Metrica == opcion ? "chip-activo" : "")"
+                                @onclick="() => Metrica = opcion">
+                            @opcion
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <div class="grafico" style="@EstiloGrafico">
+                @foreach (var dia in DiasPeriodo)
+                {
+                    var valor = ValorDe(dia);
+
+                    <div class="barra-dia">
+                        <span class="barra-valor">@(valor.HasValue ? Num(valor.Value) : "")</span>
+                        <div class="barra-col">
+                            <div class="barra-relleno @(Cumple(valor) ? "barra-ok" : "")"
+                                 style="height:@Pct(valor ?? 0, MaxGrafico)%"></div>
+                        </div>
+                        <span class="barra-fecha">@EtiquetaDia(dia)</span>
+                    </div>
+                }
+            </div>
+
+            <div class="leyenda">
+                <span><i class="punto punto-ok"></i>Meta alcanzada</span>
+                <span><i class="punto punto-base"></i>Por debajo de la meta</span>
+                <span>Referencia: @Num(MetaMetrica) @UnidadMetrica</span>
+            </div>
+
+        </section>
+
+        <section class="panel">
+
+            <div class="card-heading">
+                <div>
+                    <span class="seccion-tag">DETALLE</span>
+                    <h2>Registro día por día</h2>
+                </div>
+            </div>
+
+            @if (HabitosActuales.Count == 0 && !ConsumoActual.Any(c => c.Registros > 0))
+            {
+                <p class="vacio">Aún no tienes registros en este período.</p>
+            }
+
+            <div class="tabla">
+
+                <div class="fila fila-cabecera">
+                    <span>FECHA</span>
+                    <span>SUEÑO</span>
+                    <span>AGUA</span>
+                    <span>ACTIVIDAD</span>
+                    <span>CALORÍAS</span>
+                    <span>METAS</span>
+                    <span>CORREGIR</span>
+                </div>
+
+                @foreach (var dia in DiasPeriodo.OrderByDescending(d => d))
+                {
+                    var habito = HabitosActuales.FirstOrDefault(h => h.Fecha == dia);
+                    var consumo = ConsumoActual.FirstOrDefault(c => c.Fecha == dia);
+
+                    <div class="fila fila-dato">
+                        <span>@TextoFecha(dia)</span>
+
+                        @if (habito == null)
+                        {
+                            <span class="sin-dato">—</span>
+                            <span class="sin-dato">—</span>
+                            <span class="sin-dato">—</span>
+                        }
+                        else
+                        {
+                            <span>@Num(habito.HorasSueno) h</span>
+                            <span>@Num(habito.AguaLitros) L</span>
+                            <span>@DescripcionActividad(habito)</span>
+                        }
+
+                        @if (consumo == null || consumo.Registros == 0)
+                        {
+                            <span class="sin-dato">—</span>
+                        }
+                        else
+                        {
+                            <span>@Num(consumo.Calorias) kcal</span>
+                        }
+
+                        @if (habito == null)
+                        {
+                            <span class="sin-dato">—</span>
+                        }
+                        else
+                        {
+                            <span class="metas-fila">@MetasDe(habito) / 3</span>
+                        }
+
+                        <span class="acciones">
+                            <a href="habitos?fecha=@ParametroFecha(dia)">Hábitos</a>
+                            <a href="consumo?fecha=@ParametroFecha(dia)">Consumo</a>
+                        </span>
+                    </div>
+                }
+
+            </div>
+
+        </section>
+    }
+
+</div>
+
+@code {
+
+    private const decimal MetaSueno = 8;
+    private const decimal MetaAgua = 2;
+    private const int MetaActividad = 60;
+    private const int MetaCalorias = 2000;
+
+    private static readonly int[] Periodos = { 7, 14, 30 };
+    private static readonly string[] Metricas = { "Sueño", "Agua", "Actividad", "Calorías" };
+
+    private List<DateTime> DiasPeriodo = new();
+    private List<HabitoDiario> HabitosActuales = new();
+    private List<HabitoDiario> HabitosPrevios = new();
+    private List<ResumenNutricionalDia> ConsumoActual = new();
+    private List<ResumenNutricionalDia> ConsumoPrevio = new();
+
+    private int PeriodoDias = 7;
+    private string Metrica = "Sueño";
+    private string Mensaje = "";
+    private bool Cargando = true;
+
+    private decimal PromSueno => Promedio(HabitosActuales.Select(h => h.HorasSueno));
+    private decimal PrevSueno => Promedio(HabitosPrevios.Select(h => h.HorasSueno));
+    private decimal PromAgua => Promedio(HabitosActuales.Select(h => h.AguaLitros));
+    private decimal PrevAgua => Promedio(HabitosPrevios.Select(h => h.AguaLitros));
+    private decimal PromActividad => Promedio(HabitosActuales.Select(h => (decimal)h.MinutosActividad));
+    private decimal PrevActividad => Promedio(HabitosPrevios.Select(h => (decimal)h.MinutosActividad));
+    private decimal PromCalorias => Promedio(ConsumoActual.Where(c => c.Registros > 0).Select(c => c.Calorias));
+    private decimal PrevCalorias => Promedio(ConsumoPrevio.Where(c => c.Registros > 0).Select(c => c.Calorias));
+
+    private int MetasTotales => HabitosActuales.Sum(h => MetasDe(h));
+
+    private decimal MetaMetrica => Metrica switch
+    {
+        "Sueño" => MetaSueno,
+        "Agua" => MetaAgua,
+        "Actividad" => MetaActividad,
+        _ => MetaCalorias
+    };
+
+    private string UnidadMetrica => Metrica switch
+    {
+        "Sueño" => "h",
+        "Agua" => "L",
+        "Actividad" => "min",
+        _ => "kcal"
+    };
+
+    private decimal MaxGrafico
+    {
+        get
+        {
+            var maximo = DiasPeriodo
+                .Select(d => ValorDe(d) ?? 0)
+                .DefaultIfEmpty(0)
+                .Max();
+
+            return Math.Max(maximo, MetaMetrica);
+        }
+    }
+
+    private string EstiloGrafico =>
+        "grid-template-columns:repeat(" + DiasPeriodo.Count + ", minmax(0, 1fr))";
+
+    private string TextoCalorias
+    {
+        get
+        {
+            if (!ConsumoActual.Any(c => c.Registros > 0))
+            {
+                return "Sin consumos en el período";
+            }
+
+            if (!ConsumoPrevio.Any(c => c.Registros > 0))
+            {
+                return "Sin datos del período anterior";
+            }
+
+            var delta = Math.Round(PromCalorias - PrevCalorias, 0);
+
+            if (delta == 0)
+            {
+                return "Sin cambios";
+            }
+
+            return (delta > 0 ? "▲ +" : "▼ -") + Num(Math.Abs(delta)) + " kcal vs anterior";
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Sesion.EstaAutenticado)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+
+        await CargarAsync();
+    }
+
+    private async Task CambiarPeriodoAsync(int dias)
+    {
+        PeriodoDias = dias;
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        Cargando = true;
+        Mensaje = "";
+
+        try
+        {
+            var hoy = DateTime.Today;
+            var anterior = hoy.AddDays(-PeriodoDias);
+
+            DiasPeriodo = Enumerable.Range(0, PeriodoDias)
+                .Select(i => hoy.AddDays(-(PeriodoDias - 1) + i))
+                .ToList();
+
+            HabitosActuales = await HabitoSvc.ListarRecientesAsync(Sesion.UsuarioId, hoy, PeriodoDias);
+            HabitosPrevios = await HabitoSvc.ListarRecientesAsync(Sesion.UsuarioId, anterior, PeriodoDias);
+            ConsumoActual = await ConsumoSvc.ResumenDiarioAsync(Sesion.UsuarioId, hoy, PeriodoDias);
+            ConsumoPrevio = await ConsumoSvc.ResumenDiarioAsync(Sesion.UsuarioId, anterior, PeriodoDias);
+        }
+        catch (Exception)
+        {
+            Mensaje = "No se pudo cargar el historial.";
+        }
+        finally
+        {
+            Cargando = false;
+        }
+    }
+
+    private decimal? ValorDe(DateTime dia)
+    {
+        var habito = HabitosActuales.FirstOrDefault(h => h.Fecha == dia);
+        var consumo = ConsumoActual.FirstOrDefault(c => c.Fecha == dia && c.Registros > 0);
+
+        return Metrica switch
+        {
+            "Sueño" => habito?.HorasSueno,
+            "Agua" => habito?.AguaLitros,
+            "Actividad" => (decimal?)habito?.MinutosActividad,
+            _ => consumo?.Calorias
+        };
+    }
+
+    private bool Cumple(decimal? valor) =>
+        valor.HasValue && Metrica != "Calorías" && valor.Value >= MetaMetrica;
+
+    private string TextoTendencia(decimal actual, decimal previo, string unidad)
+    {
+        if (HabitosActuales.Count == 0)
+        {
+            return "Sin registros en el período";
+        }
+
+        if (HabitosPrevios.Count == 0)
+        {
+            return "Sin datos del período anterior";
+        }
+
+        var delta = Math.Round(actual - previo, 2);
+
+        if (delta == 0)
+        {
+            return "Sin cambios";
+        }
+
+        return (delta > 0 ? "▲ Mejora +" : "▼ Retroceso -") + Num(Math.Abs(delta)) + unidad;
+    }
+
+    private string ClaseTendencia(decimal actual, decimal previo)
+    {
+        if (HabitosActuales.Count == 0 || HabitosPrevios.Count == 0)
+        {
+            return "tend-neutra";
+        }
+
+        var delta = Math.Round(actual - previo, 2);
+
+        if (delta > 0)
+        {
+            return "tend-mejora";
+        }
+
+        return delta < 0 ? "tend-retroceso" : "tend-neutra";
+    }
+
+    private static int MetasDe(HabitoDiario h) =>
+        (h.HorasSueno >= MetaSueno ? 1 : 0) +
+        (h.AguaLitros >= MetaAgua ? 1 : 0) +
+        (h.MinutosActividad >= MetaActividad ? 1 : 0);
+
+    private static string DescripcionActividad(HabitoDiario h) =>
+        string.IsNullOrEmpty(h.TipoActividad)
+            ? h.MinutosActividad + " min"
+            : h.MinutosActividad + " min · " + h.TipoActividad;
+
+    private string EtiquetaDia(DateTime dia) =>
+        PeriodoDias > 14 ? dia.ToString("dd") : dia.ToString("dd/MM");
+
+    private static string TextoFecha(DateTime dia) => dia.ToString("dd/MM/yyyy");
+
+    private static string ParametroFecha(DateTime dia) => dia.ToString("yyyy-MM-dd");
+
+    private static decimal Promedio(IEnumerable<decimal> valores)
+    {
+        var lista = valores.ToList();
+
+        return lista.Count == 0 ? 0 : lista.Average();
+    }
+
+    private static string Num(decimal valor) => valor.ToString("0.##");
+
+    private static int Pct(decimal valor, decimal total)
+    {
+        if (total <= 0)
+        {
+            return 0;
+        }
+
+        var pct = (int)Math.Round(valor * 100 / total);
+
+        return Math.Clamp(pct, 0, 100);
+    }
+}

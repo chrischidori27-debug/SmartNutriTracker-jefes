@@ -241,10 +241,32 @@
                                             }
                                             else
                                             {
+                                                <button type="button" class="btn-cancelar" @onclick="() => IniciarEdicion(item)">Editar</button>
                                                 <button type="button" class="btn-cancelar" @onclick="() => IdPendienteEliminar = item.Id">Eliminar</button>
                                             }
                                         </div>
                                     </div>
+
+                                    @if (IdEdicion == item.Id)
+                                    {
+                                        <div class="edicion">
+                                            <select @bind="EditTipoComida">
+                                                @foreach (var opcion in ConsumoServicio.TiposComida)
+                                                {
+                                                    <option value="@opcion">@opcion</option>
+                                                }
+                                            </select>
+
+                                            <div class="stepper">
+                                                <button type="button" @onclick="() => CambiarEdicion(-0.5m)">−</button>
+                                                <input type="number" step="0.5" min="0.5" max="20" @bind="EditPorciones" @bind:event="oninput" />
+                                                <button type="button" @onclick="() => CambiarEdicion(0.5m)">+</button>
+                                            </div>
+
+                                            <button type="button" class="btn-guardar-mini" @onclick="GuardarEdicionAsync">Guardar cambios</button>
+                                            <button type="button" class="btn-cancelar" @onclick="CancelarEdicion">Cancelar</button>
+                                        </div>
+                                    }
                                 }
                             </div>
                         }
@@ -304,6 +326,13 @@
     private bool Cargando = true;
     private bool Guardando = false;
     private int IdPendienteEliminar = 0;
+    private int IdEdicion = 0;
+    private string EditTipoComida = "";
+    private decimal EditPorciones = 1;
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "fecha")]
+    public string? FechaParametro { get; set; }
 
     private string HoyTexto => DateTime.Today.ToString("yyyy-MM-dd");
 
@@ -339,6 +368,16 @@
             return;
         }
 
+        if (System.DateTime.TryParseExact(
+                FechaParametro,
+                "yyyy-MM-dd",
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None,
+                out var fechaConsulta) && fechaConsulta.Date <= DateTime.Today)
+        {
+            Fecha = fechaConsulta.Date;
+        }
+
         try
         {
             ListaAlimentos = await CatalogoSvc.ListarAsync();
@@ -355,6 +394,7 @@
     {
         Cargando = true;
         IdPendienteEliminar = 0;
+        IdEdicion = 0;
 
         try
         {
@@ -429,6 +469,48 @@
         catch (Exception)
         {
             MostrarMensaje("Ocurrió un error al eliminar el registro.", false);
+        }
+    }
+
+    private void IniciarEdicion(ConsumoAlimento item)
+    {
+        IdEdicion = item.Id;
+        EditTipoComida = item.TipoComida;
+        EditPorciones = item.Porciones;
+        IdPendienteEliminar = 0;
+    }
+
+    private void CancelarEdicion()
+    {
+        IdEdicion = 0;
+    }
+
+    private void CambiarEdicion(decimal cambio)
+    {
+        EditPorciones = Math.Clamp(EditPorciones + cambio, 0.5m, 20m);
+    }
+
+    private async Task GuardarEdicionAsync()
+    {
+        try
+        {
+            var resultado = await ConsumoSvc.ActualizarAsync(
+                Sesion.UsuarioId,
+                IdEdicion,
+                EditTipoComida,
+                EditPorciones);
+
+            MostrarMensaje(resultado.Mensaje, resultado.Exito);
+
+            if (resultado.Exito)
+            {
+                IdEdicion = 0;
+                await CargarDiaAsync();
+            }
+        }
+        catch (Exception)
+        {
+            MostrarMensaje("Ocurrió un error al actualizar el registro.", false);
         }
     }
 
