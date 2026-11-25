@@ -1,6 +1,6 @@
 # SmartNutriTracker · Equipo 4 · Registro de Hábitos
 
-Módulo de **registro de consumo real de alimentos** y **hábitos diarios** del estudiante. Forma parte del proyecto Blazor Server de SmartNutriTracker (.NET 10, EF Core, SQL Server) y reutiliza el inicio de sesión (`UsuarioSesion`) y el catálogo de alimentos (`AlimentoServicio`) de los equipos 1 y 3.
+Módulo de **registro de consumo real de alimentos**, **hábitos diarios**, **historial** y **corrección de registros** del estudiante. Forma parte del proyecto Blazor Server de SmartNutriTracker (.NET 10, EF Core, SQL Server) y reutiliza el inicio de sesión (`UsuarioSesion`) y el catálogo de alimentos (`AlimentoServicio`) de los equipos 1 y 3.
 
 ---
 
@@ -10,6 +10,8 @@ Módulo de **registro de consumo real de alimentos** y **hábitos diarios** del 
 |---|---|---|
 | **HU-19** | Registrar consumo real de alimentos para generar un historial nutricional | `/consumo` |
 | **HU-20** | Registrar hábitos diarios: horas de sueño, agua y actividad física | `/habitos` |
+| **HU-21** | Ver historial de hábitos para identificar mejoras o retrocesos | `/historial` |
+| **HU-22** | Actualizar registro diario para corregir datos registrados por error | `/consumo` y `/habitos` |
 
 ### HU-19 · Consumo real de alimentos
 - Selección de la **comida del día**: Desayuno, Media mañana, Almuerzo, Merienda o Cena.
@@ -28,6 +30,18 @@ Módulo de **registro de consumo real de alimentos** y **hábitos diarios** del 
 - **Valoración del día**: cuántas de las 3 metas se cumplieron.
 - Un registro por estudiante y día: si se guarda de nuevo, se **actualiza**.
 - Historial de los últimos 7 días; al pulsar una fila se carga ese día.
+
+### HU-21 · Historial de hábitos
+- Período a elegir: últimos **7, 14 o 30 días**.
+- Tarjetas con **días registrados**, metas cumplidas y promedios de sueño, agua, actividad y calorías por día.
+- **Comparación con el período anterior**: cada promedio muestra si hubo mejora (▲), retroceso (▼) o ningún cambio.
+- Gráfico de barras día por día, con selector de métrica (Sueño, Agua, Actividad, Calorías) y color distinto cuando se alcanza la meta.
+- Tabla con el detalle de cada día y enlaces **Hábitos** y **Consumo** que abren esa fecha para corregirla.
+
+### HU-22 · Actualizar registro diario
+- **Hábitos:** al guardar de nuevo en una fecha ya registrada, el registro se actualiza (no se duplica). El botón cambia a "Actualizar hábitos del día".
+- **Consumos:** cada consumo tiene el botón **Editar**, que permite cambiar la comida del día y las porciones. Las calorías y macronutrientes se recalculan automáticamente.
+- Las pantallas `/habitos` y `/consumo` aceptan el parámetro `?fecha=yyyy-MM-dd`, usado por el historial para llevar directo al día a corregir.
 
 ### Metas de referencia
 | Hábito | Meta |
@@ -60,7 +74,8 @@ SmartNutriTracker/
     │   └── HabitoServicio.cs                Lógica de HU-20
     └── Components/Pages/
         ├── ConsumoAlimentos.razor / .razor.css    Pantalla /consumo
-        └── HabitosDiarios.razor / .razor.css      Pantalla /habitos
+        ├── HabitosDiarios.razor / .razor.css      Pantalla /habitos
+        └── HistorialHabitos.razor / .razor.css    Pantalla /historial
 ```
 
 Archivos **existentes con cambios mínimos**:
@@ -68,7 +83,7 @@ Archivos **existentes con cambios mínimos**:
 | Archivo | Cambio |
 |---|---|
 | `Program.cs` | Registro de `ConsumoServicio` y `HabitoServicio` (2 líneas) |
-| `Components/Layout/NavMenu.razor` | Sección "REGISTRO DE HÁBITOS" con dos enlaces |
+| `Components/Layout/NavMenu.razor` | Sección "REGISTRO DE HÁBITOS" con tres enlaces |
 
 El contexto se amplió con una clase **parcial** (`SmartNutriTrackerContext.RegistroHabitos.cs`), por lo que `SmartNutriTrackerContext.cs` no se modificó.
 
@@ -120,7 +135,9 @@ Usuarios 1 ──── N HabitosDiarios
 | `ListarPorDiaAsync(usuarioId, fecha)` | Consumos del día con su alimento |
 | `RegistrarAsync(usuarioId, alimentoId, tipoComida, porciones, fecha)` | Valida, calcula calorías y macros, y guarda |
 | `EliminarAsync(usuarioId, consumoId)` | Elimina un registro propio |
+| `ActualizarAsync(usuarioId, consumoId, tipoComida, porciones)` | Corrige un registro propio y recalcula calorías y macros |
 | `ResumenSemanalAsync(usuarioId, fechaFin)` | Calorías de los últimos 7 días |
+| `ResumenDiarioAsync(usuarioId, fechaFin, dias)` | Totales nutricionales por día en un período |
 
 ### `HabitoServicio`
 | Método | Función |
@@ -173,11 +190,15 @@ Todos los métodos devuelven `(bool Exito, string Mensaje)` en las operaciones d
 | Cambiar la fecha | Se cargan los consumos de ese día |
 | Guardar hábitos del día | Mensaje de éxito y fila en el historial de 7 días |
 | Guardar hábitos otra vez el mismo día | Se actualiza, no se duplica |
+| Pulsar **Editar** en un consumo y cambiar las porciones | Se actualizan las calorías y macros, y los totales del día |
+| Entrar a `/historial` y cambiar entre 7, 14 y 30 días | Cambian las tarjetas, el gráfico y la tabla |
+| Pulsar **Hábitos** o **Consumo** en una fila del historial | Abre esa pantalla con la fecha elegida |
 | Verificar en SQL Server | `SELECT * FROM ConsumosAlimento;` y `SELECT * FROM HabitosDiarios;` muestran los registros del usuario |
 
 ---
 
 ## 8. Alcance y pendientes
 
-- Incluido: **HU-19** y **HU-20**.
-- Relacionado y pendiente del equipo: **HU-21** (historial completo de hábitos, hoy cubierto de forma resumida por los últimos 7 días) y **HU-22** (modificar registros diarios; los hábitos ya se actualizan al guardar de nuevo, falta la edición de consumos).
+- Incluido: **HU-19**, **HU-20**, **HU-21** y **HU-22**.
+- No requiere cambios en la base de datos más allá de las dos tablas del script `Equipo4_RegistroHabitos.sql`.
+- Las metas son valores fijos de referencia; pueden personalizarse cuando exista el perfil del estudiante (Equipo 2).
