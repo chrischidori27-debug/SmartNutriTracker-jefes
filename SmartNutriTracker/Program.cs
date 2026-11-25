@@ -1,5 +1,5 @@
-using SmartNutriTracker.Api;
 using SmartNutriTracker.Components;
+using SmartNutriTracker.Api;
 using SmartNutriTracker.Logging;
 using SmartNutriTracker.Modelos;
 using SmartNutriTracker.Servicios;
@@ -35,17 +35,52 @@ builder.Services.AddScoped<AuditoriaServicio>();
 // HU-26: cálculo nutricional automático
 builder.Services.AddScoped<NutricionServicio>();
 
-// HU-24: recomendación nutricional según IMC
+// HU-24: IMC y recomendación base
 builder.Services.AddScoped<ImcServicio>();
 
-// HU-32: documentación de la API con Swagger
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new() { Title = "SmartNutriTracker API", Version = "v1" });
-});
+// HU-32: documento OpenAPI (Swagger)
+builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+// Crea la base de datos/tablas si no existen y asegura los roles base.
+// Sin estos roles el registro de usuarios no funciona.
+using (var scope = app.Services.CreateScope())
+{
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+    try
+    {
+        var factory = scope.ServiceProvider
+            .GetRequiredService<IDbContextFactory<SmartNutriTrackerContext>>();
+
+        await using var context = await factory.CreateDbContextAsync();
+
+        await context.Database.EnsureCreatedAsync();
+
+        var roles = new (string Nombre, string Descripcion)[]
+        {
+            ("Administrador", "Control general del sistema."),
+            ("Docente", "Seguimiento de estudiantes."),
+            ("Estudiante", "Consulta y registro de información."),
+            ("Nutricionista", "Gestión nutricional y alimentos.")
+        };
+
+        foreach (var (nombre, descripcion) in roles)
+        {
+            if (!await context.Roles.AnyAsync(r => r.Nombre == nombre))
+            {
+                context.Roles.Add(new Role { Nombre = nombre, Descripcion = descripcion });
+            }
+        }
+
+        await context.SaveChangesAsync();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "No se pudo inicializar la base de datos. Revisa la cadena de conexión.");
+    }
+}
 
 if (!app.Environment.IsDevelopment())
 {
@@ -56,17 +91,12 @@ app.UseStatusCodePagesWithReExecute(
     "/not-found",
     createScopeForStatusCodePages: true);
 
-app.UseSwagger();
-app.UseSwaggerUI(c =>
-{
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "SmartNutriTracker API v1");
-    c.RoutePrefix = "swagger";
-});
-
 app.UseAntiforgery();
 
 app.MapStaticAssets();
 
+// HU-32: /openapi/v1.json y /swagger
+app.MapOpenApi();
 app.MapApiEndpoints();
 
 app.MapRazorComponents<App>()

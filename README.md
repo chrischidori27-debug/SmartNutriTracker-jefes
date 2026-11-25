@@ -279,9 +279,9 @@ Proyecto académico desarrollado como parte de la asignatura de **Programación 
 
 | HU | Descripción | Dónde |
 |----|-------------|-------|
-| HU-24 | Modelo nutricional según IMC: cálculo, clasificación (OMS) y recomendación de ajuste calórico y macros | `Servicios/ImcServicio.cs`, `Components/Pages/Imc.razor` (`/imc`) |
 | HU-26 | Servicio de cálculo nutricional automático (calorías y macros por alimento, menú y día) | `Servicios/NutricionServicio.cs` |
 | HU-29 | Logs globales: logger a archivo (`logs/`) y auditoría de acciones en `LogsAuditoria` | `Logging/ArchivoLoggerProvider.cs`, `Servicios/AuditoriaServicio.cs` |
-| HU-32 | Documentación de la API con Swagger (`/swagger`) | `Program.cs`, `Api/ApiEndpoints.cs` |
+| HU-24 | Modelo nutricional según IMC (cálculo, categoría OMS y recomendación de menú) | `Servicios/ImcServicio.cs` |
+| HU-32 | Documentación de la API con Swagger UI en `/swagger` (OpenAPI en `/openapi/v1.json`) | `Api/ApiEndpoints.cs` |
 
 > En HU-26, los valores nutricionales de un alimento se toman por porción y `MenuAlimento.Cantidad` se interpreta como número de porciones.

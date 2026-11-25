@@ -1,0 +1,152 @@
+@page "/usuarios"
+@rendermode InteractiveServer
+
+@using Microsoft.EntityFrameworkCore
+@using SmartNutriTracker.Modelos
+@using SmartNutriTracker.Servicios
+@inject IDbContextFactory<SmartNutriTrackerContext> DbFactory
+@inject AuditoriaServicio Auditoria
+
+<PageTitle>Usuarios | SmartNutriTracker</PageTitle>
+
+<div class="adm-page">
+
+    <div class="adm-head">
+        <span class="adm-tag">GESTIÓN DEL SISTEMA</span>
+        <h1>Usuarios</h1>
+        <p>Consulta las cuentas registradas y controla si están activas.</p>
+    </div>
+
+    @if (!string.IsNullOrEmpty(mensaje))
+    {
+        <div class="adm-msg @(esError ? "error" : "ok")">@mensaje</div>
+    }
+
+    <div class="adm-stats">
+        <div class="adm-stat"><span>TOTAL</span><strong>@lista.Count</strong></div>
+        <div class="adm-stat"><span>ACTIVOS</span><strong>@(lista.Count(u => u.Estado))</strong></div>
+        <div class="adm-stat"><span>INACTIVOS</span><strong>@(lista.Count(u => !u.Estado))</strong></div>
+    </div>
+
+    <div class="adm-card">
+        <div class="adm-toolbar">
+            <h2 style="margin:0">Cuentas registradas</h2>
+            <input class="adm-search" placeholder="Buscar por nombre o correo..." @bind="filtro" @bind:event="oninput" />
+        </div>
+
+        @if (cargando)
+        {
+            <div class="adm-empty">Cargando...</div>
+        }
+        else if (!Filtrados.Any())
+        {
+            <div class="adm-empty">No hay usuarios para mostrar.</div>
+        }
+        else
+        {
+            <div class="adm-table-wrap">
+                <table class="adm-table">
+                    <thead>
+                        <tr>
+                            <th>NOMBRE</th>
+                            <th>CORREO</th>
+                            <th>ROL</th>
+                            <th>REGISTRO</th>
+                            <th>ESTADO</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var u in Filtrados)
+                        {
+                            <tr>
+                                <td><strong>@u.Nombre</strong></td>
+                                <td>@u.Correo</td>
+                                <td><span class="adm-badge">@u.Rol.Nombre</span></td>
+                                <td>@u.FechaRegistro.ToString("dd/MM/yyyy")</td>
+                                <td>
+                                    <span class="adm-badge @(u.Estado ? "adm-badge-ok" : "adm-badge-off")">
+                                        @(u.Estado ? "Activo" : "Inactivo")
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="adm-row-actions">
+                                        <button class="adm-btn adm-btn-sm" @onclick="() => CambiarEstado(u.Id)">
+                                            @(u.Estado ? "Desactivar" : "Activar")
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+
+    private List<Usuario> lista = new();
+    private string filtro = "";
+    private string mensaje = "";
+    private bool esError;
+    private bool cargando = true;
+
+    private IEnumerable<Usuario> Filtrados =>
+        lista.Where(u =>
+            string.IsNullOrWhiteSpace(filtro)
+            || u.Nombre.Contains(filtro, StringComparison.OrdinalIgnoreCase)
+            || u.Correo.Contains(filtro, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Cargar();
+    }
+
+    private async Task Cargar()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            lista = await ctx.Usuarios.AsNoTracking()
+                .Include(u => u.Rol)
+                .OrderBy(u => u.Nombre)
+                .ToListAsync();
+        }
+        catch (Exception)
+        {
+            mensaje = "No se pudo conectar con la base de datos. Revisa la cadena de conexión en appsettings.json.";
+            esError = true;
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private async Task CambiarEstado(int id)
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var u = await ctx.Usuarios.FindAsync(id);
+            if (u == null) return;
+
+            u.Estado = !u.Estado;
+            await ctx.SaveChangesAsync();
+
+            await Auditoria.RegistrarAsync(u.Id, "USUARIO_ESTADO",
+                $"Cuenta {u.Correo} ahora está {(u.Estado ? "activa" : "inactiva")}.");
+
+            mensaje = $"La cuenta de {u.Nombre} ahora está {(u.Estado ? "activa" : "inactiva")}.";
+            esError = false;
+            await Cargar();
+        }
+        catch (Exception)
+        {
+            mensaje = "No se pudo cambiar el estado de la cuenta.";
+            esError = true;
+        }
+    }
+}

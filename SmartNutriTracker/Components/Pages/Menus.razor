@@ -1,0 +1,467 @@
+@page "/menus"
+@rendermode InteractiveServer
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.EntityFrameworkCore
+@using SmartNutriTracker.Modelos
+@using SmartNutriTracker.Servicios
+@inject IDbContextFactory<SmartNutriTrackerContext> DbFactory
+@inject NutricionServicio Nutricion
+@inject AuditoriaServicio Auditoria
+
+<PageTitle>Menús diarios | SmartNutriTracker</PageTitle>
+
+<div class="adm-page">
+
+    <div class="adm-head">
+        <span class="adm-tag">GESTIÓN NUTRICIONAL</span>
+        <h1>Menús diarios</h1>
+        <p>Organiza alimentos en menús por fecha y consulta su resumen nutricional.</p>
+    </div>
+
+    @if (!string.IsNullOrEmpty(mensaje))
+    {
+        <div class="adm-msg @(esError ? "error" : "ok")">@mensaje</div>
+    }
+
+    <div class="adm-card">
+        <h2>Nuevo menú</h2>
+
+        @if (usuarios.Count == 0 && !cargando)
+        {
+            <div class="adm-empty">
+                Para crear un menú necesitas al menos un usuario responsable.
+                <NavLink href="registro">Registra un usuario</NavLink> primero.
+            </div>
+        }
+        else
+        {
+            <EditForm Model="form" OnValidSubmit="CrearMenu" FormName="form-menu">
+                <DataAnnotationsValidator />
+
+                <div class="adm-form">
+                    <div class="adm-field">
+                        <label>Nombre del menú</label>
+                        <InputText @bind-Value="form.Nombre" placeholder="Ej. Almuerzo escolar" />
+                        <ValidationMessage For="() => form.Nombre" />
+                    </div>
+                    <div class="adm-field">
+                        <label>Fecha</label>
+                        <InputDate @bind-Value="form.Fecha" />
+                    </div>
+                    <div class="adm-field">
+                        <label>Responsable</label>
+                        <InputSelect @bind-Value="form.UsuarioId">
+                            <option value="0">Selecciona un usuario</option>
+                            @foreach (var u in usuarios)
+                            {
+                                <option value="@u.Id">@u.Nombre</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="() => form.UsuarioId" />
+                    </div>
+                    <div class="adm-field adm-wide">
+                        <label>Descripción (opcional)</label>
+                        <InputText @bind-Value="form.Descripcion" />
+                        <ValidationMessage For="() => form.Descripcion" />
+                    </div>
+                </div>
+
+                <div class="adm-actions">
+                    <button type="submit" class="adm-btn adm-btn-primary">Crear menú</button>
+                </div>
+            </EditForm>
+        }
+    </div>
+
+    <div class="adm-split two">
+
+        <div class="adm-card">
+            <h2>Menús registrados</h2>
+
+            @if (cargando)
+            {
+                <div class="adm-empty">Cargando...</div>
+            }
+            else if (menus.Count == 0)
+            {
+                <div class="adm-empty">Todavía no hay menús.</div>
+            }
+            else
+            {
+                <div class="adm-table-wrap">
+                    <table class="adm-table">
+                        <thead>
+                            <tr>
+                                <th>MENÚ</th>
+                                <th>FECHA</th>
+                                <th>RESPONSABLE</th>
+                                <th class="adm-num">KCAL</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var m in menus)
+                            {
+                                <tr class="@(m.Id == menuSeleccionadoId ? "adm-row-sel" : "")">
+                                    <td><strong>@m.Nombre</strong></td>
+                                    <td>@m.Fecha.ToString("dd/MM/yyyy")</td>
+                                    <td>@m.Usuario.Nombre</td>
+                                    <td class="adm-num">@KcalDe(m.Id)</td>
+                                    <td>
+                                        <div class="adm-row-actions">
+                                            <button class="adm-btn adm-btn-sm" @onclick="() => Seleccionar(m.Id)">Ver detalle</button>
+                                            <button class="adm-btn adm-btn-sm adm-btn-danger" @onclick="() => EliminarMenu(m.Id)">Eliminar</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+        <div class="adm-card">
+            @if (menuSeleccionado == null)
+            {
+                <h2>Detalle del menú</h2>
+                <div class="adm-empty">Selecciona un menú para ver y editar sus alimentos.</div>
+            }
+            else
+            {
+                <h2>@menuSeleccionado.Nombre · @menuSeleccionado.Fecha.ToString("dd/MM/yyyy")</h2>
+
+                <div class="adm-form" style="grid-template-columns: 2fr 1fr auto; align-items:end">
+                    <div class="adm-field">
+                        <label>Alimento</label>
+                        <select @bind="alimentoSel">
+                            <option value="0">Selecciona un alimento</option>
+                            @foreach (var a in alimentosActivos)
+                            {
+                                <option value="@a.Id">@a.Nombre (@a.Porcion)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="adm-field">
+                        <label>Porciones</label>
+                        <input type="number" step="0.5" min="0.5" @bind="cantidadSel" />
+                    </div>
+                    <button class="adm-btn adm-btn-primary" @onclick="AgregarAlimento">Agregar</button>
+                </div>
+
+                @if (items.Count == 0)
+                {
+                    <div class="adm-empty">Este menú aún no tiene alimentos.</div>
+                }
+                else
+                {
+                    <div class="adm-table-wrap" style="margin-top:14px">
+                        <table class="adm-table">
+                            <thead>
+                                <tr>
+                                    <th>ALIMENTO</th>
+                                    <th class="adm-num">PORC.</th>
+                                    <th class="adm-num">KCAL</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var it in items)
+                                {
+                                    <tr>
+                                        <td>@it.Alimento.Nombre</td>
+                                        <td class="adm-num">@it.Cantidad.ToString("0.##")</td>
+                                        <td class="adm-num">@((it.Alimento.Calorias * it.Cantidad).ToString("0.##"))</td>
+                                        <td>
+                                            <div class="adm-row-actions">
+                                                <button class="adm-btn adm-btn-sm adm-btn-danger" @onclick="() => QuitarAlimento(it.Id)">Quitar</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+
+                @if (resumen != null)
+                {
+                    <div class="adm-macros">
+                        <div><span>CALORÍAS</span><strong>@resumen.Calorias.ToString("0.##")</strong></div>
+                        <div><span>PROTEÍNAS (g)</span><strong>@resumen.Proteinas.ToString("0.##")</strong></div>
+                        <div><span>CARBOHIDRATOS (g)</span><strong>@resumen.Carbohidratos.ToString("0.##")</strong></div>
+                        <div><span>GRASAS (g)</span><strong>@resumen.Grasas.ToString("0.##")</strong></div>
+                        <div><span>FIBRA (g)</span><strong>@resumen.Fibra.ToString("0.##")</strong></div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+
+    private List<MenusDiario> menus = new();
+    private List<Usuario> usuarios = new();
+    private List<Alimento> alimentosActivos = new();
+    private Dictionary<int, ResumenNutricional> totales = new();
+
+    private MenuForm form = new();
+    private int? menuSeleccionadoId;
+    private MenusDiario? menuSeleccionado;
+    private List<MenuAlimento> items = new();
+    private ResumenNutricional? resumen;
+
+    private int alimentoSel;
+    private decimal cantidadSel = 1;
+
+    private string mensaje = "";
+    private bool esError;
+    private bool cargando = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Cargar();
+    }
+
+    private string KcalDe(int menuId) =>
+        totales.TryGetValue(menuId, out var r) ? r.Calorias.ToString("0.##") : "0";
+
+    private void Avisar(string texto, bool error)
+    {
+        mensaje = texto;
+        esError = error;
+    }
+
+    private async Task Cargar()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            menus = await ctx.MenusDiarios.AsNoTracking()
+                .Include(m => m.Usuario)
+                .OrderByDescending(m => m.Fecha).ThenBy(m => m.Nombre)
+                .ToListAsync();
+
+            usuarios = await ctx.Usuarios.AsNoTracking()
+                .Where(u => u.Estado)
+                .OrderBy(u => u.Nombre)
+                .ToListAsync();
+
+            alimentosActivos = await ctx.Alimentos.AsNoTracking()
+                .Where(a => a.Estado)
+                .OrderBy(a => a.Nombre)
+                .ToListAsync();
+
+            var todos = await ctx.MenuAlimentos.AsNoTracking()
+                .Include(m => m.Alimento)
+                .ToListAsync();
+
+            totales = todos
+                .GroupBy(i => i.MenuId)
+                .ToDictionary(g => g.Key, g => Nutricion.CalcularItems(g));
+
+            if (menuSeleccionadoId != null)
+            {
+                await CargarDetalle(menuSeleccionadoId.Value);
+            }
+        }
+        catch (Exception)
+        {
+            Avisar("No se pudo conectar con la base de datos. Revisa la cadena de conexión en appsettings.json.", true);
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private async Task CargarDetalle(int id)
+    {
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+
+        menuSeleccionado = await ctx.MenusDiarios.AsNoTracking().FirstOrDefaultAsync(m => m.Id == id);
+
+        if (menuSeleccionado == null)
+        {
+            menuSeleccionadoId = null;
+            items = new();
+            resumen = null;
+            return;
+        }
+
+        items = await ctx.MenuAlimentos.AsNoTracking()
+            .Include(m => m.Alimento)
+            .Where(m => m.MenuId == id)
+            .OrderBy(m => m.Alimento.Nombre)
+            .ToListAsync();
+
+        resumen = Nutricion.CalcularItems(items);
+    }
+
+    private async Task Seleccionar(int id)
+    {
+        menuSeleccionadoId = id;
+        mensaje = "";
+        try
+        {
+            await CargarDetalle(id);
+        }
+        catch (Exception)
+        {
+            Avisar("No se pudo cargar el detalle del menú.", true);
+        }
+    }
+
+    private async Task CrearMenu()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            var menu = new MenusDiario
+            {
+                Nombre = form.Nombre.Trim(),
+                Descripcion = string.IsNullOrWhiteSpace(form.Descripcion) ? null : form.Descripcion.Trim(),
+                Fecha = form.Fecha,
+                UsuarioId = form.UsuarioId,
+                FechaRegistro = DateTime.Now
+            };
+
+            ctx.MenusDiarios.Add(menu);
+            await ctx.SaveChangesAsync();
+
+            await Auditoria.RegistrarAsync(menu.UsuarioId, "MENU_CREADO", $"Menú '{menu.Nombre}' (Id {menu.Id}).");
+
+            form = new MenuForm();
+            menuSeleccionadoId = menu.Id;
+            Avisar("Menú creado. Ahora agrégale alimentos desde el detalle.", false);
+            await Cargar();
+        }
+        catch (Exception)
+        {
+            Avisar("No se pudo crear el menú. Intenta nuevamente.", true);
+        }
+    }
+
+    private async Task EliminarMenu(int id)
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            var menu = await ctx.MenusDiarios.FindAsync(id);
+            if (menu == null) return;
+
+            var relacion = await ctx.MenuAlimentos.Where(m => m.MenuId == id).ToListAsync();
+            ctx.MenuAlimentos.RemoveRange(relacion);
+            ctx.MenusDiarios.Remove(menu);
+            await ctx.SaveChangesAsync();
+
+            await Auditoria.RegistrarAsync(menu.UsuarioId, "MENU_ELIMINADO", $"Menú '{menu.Nombre}' (Id {id}).");
+
+            if (menuSeleccionadoId == id)
+            {
+                menuSeleccionadoId = null;
+                menuSeleccionado = null;
+                items = new();
+                resumen = null;
+            }
+
+            Avisar($"Menú '{menu.Nombre}' eliminado.", false);
+            await Cargar();
+        }
+        catch (Exception)
+        {
+            Avisar("No se pudo eliminar el menú.", true);
+        }
+    }
+
+    private async Task AgregarAlimento()
+    {
+        if (menuSeleccionadoId == null) return;
+
+        if (alimentoSel == 0)
+        {
+            Avisar("Selecciona un alimento para agregar.", true);
+            return;
+        }
+
+        if (cantidadSel <= 0)
+        {
+            Avisar("Las porciones deben ser mayores que cero.", true);
+            return;
+        }
+
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            var existente = await ctx.MenuAlimentos
+                .FirstOrDefaultAsync(m => m.MenuId == menuSeleccionadoId && m.AlimentoId == alimentoSel);
+
+            if (existente != null)
+            {
+                existente.Cantidad += cantidadSel;
+            }
+            else
+            {
+                ctx.MenuAlimentos.Add(new MenuAlimento
+                {
+                    MenuId = menuSeleccionadoId.Value,
+                    AlimentoId = alimentoSel,
+                    Cantidad = cantidadSel
+                });
+            }
+
+            await ctx.SaveChangesAsync();
+
+            alimentoSel = 0;
+            cantidadSel = 1;
+            Avisar("Alimento agregado al menú.", false);
+            await Cargar();
+        }
+        catch (Exception)
+        {
+            Avisar("No se pudo agregar el alimento al menú.", true);
+        }
+    }
+
+    private async Task QuitarAlimento(int menuAlimentoId)
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            var item = await ctx.MenuAlimentos.FindAsync(menuAlimentoId);
+            if (item == null) return;
+
+            ctx.MenuAlimentos.Remove(item);
+            await ctx.SaveChangesAsync();
+
+            Avisar("Alimento quitado del menú.", false);
+            await Cargar();
+        }
+        catch (Exception)
+        {
+            Avisar("No se pudo quitar el alimento.", true);
+        }
+    }
+
+    private class MenuForm
+    {
+        [Required(ErrorMessage = "El nombre es obligatorio.")]
+        [StringLength(120, ErrorMessage = "Máximo 120 caracteres.")]
+        public string Nombre { get; set; } = "";
+
+        [StringLength(300, ErrorMessage = "Máximo 300 caracteres.")]
+        public string? Descripcion { get; set; }
+
+        public DateOnly Fecha { get; set; } = DateOnly.FromDateTime(DateTime.Today);
+
+        [Range(1, int.MaxValue, ErrorMessage = "Selecciona un responsable.")]
+        public int UsuarioId { get; set; }
+    }
+}

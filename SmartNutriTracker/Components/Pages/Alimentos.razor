@@ -1,0 +1,380 @@
+@page "/alimentos"
+@rendermode InteractiveServer
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.EntityFrameworkCore
+@using SmartNutriTracker.Modelos
+@using SmartNutriTracker.Servicios
+@inject IDbContextFactory<SmartNutriTrackerContext> DbFactory
+@inject AuditoriaServicio Auditoria
+
+<PageTitle>Alimentos | SmartNutriTracker</PageTitle>
+
+<div class="adm-page">
+
+    <div class="adm-head">
+        <span class="adm-tag">GESTIÓN NUTRICIONAL</span>
+        <h1>Alimentos</h1>
+        <p>Registra y administra los alimentos con sus valores nutricionales por porción.</p>
+    </div>
+
+    @if (!string.IsNullOrEmpty(mensaje))
+    {
+        <div class="adm-msg @(esError ? "error" : "ok")">@mensaje</div>
+    }
+
+    <div class="adm-stats">
+        <div class="adm-stat"><span>TOTAL</span><strong>@lista.Count</strong></div>
+        <div class="adm-stat"><span>ACTIVOS</span><strong>@(lista.Count(a => a.Estado))</strong></div>
+        <div class="adm-stat"><span>INACTIVOS</span><strong>@(lista.Count(a => !a.Estado))</strong></div>
+    </div>
+
+    <div class="adm-card">
+        <h2>@(editandoId == null ? "Nuevo alimento" : "Editar alimento")</h2>
+
+        <EditForm Model="form" OnValidSubmit="Guardar" FormName="form-alimento">
+            <DataAnnotationsValidator />
+
+            <div class="adm-form">
+                <div class="adm-field">
+                    <label>Nombre</label>
+                    <InputText @bind-Value="form.Nombre" placeholder="Ej. Manzana" />
+                    <ValidationMessage For="() => form.Nombre" />
+                </div>
+                <div class="adm-field">
+                    <label>Categoría</label>
+                    <InputText @bind-Value="form.Categoria" placeholder="Ej. Frutas" />
+                </div>
+                <div class="adm-field">
+                    <label>Porción</label>
+                    <InputText @bind-Value="form.Porcion" placeholder="Ej. 1 unidad (150 g)" />
+                    <ValidationMessage For="() => form.Porcion" />
+                </div>
+                <div class="adm-field">
+                    <label>Calorías (kcal)</label>
+                    <InputNumber @bind-Value="form.Calorias" />
+                    <ValidationMessage For="() => form.Calorias" />
+                </div>
+                <div class="adm-field">
+                    <label>Proteínas (g)</label>
+                    <InputNumber @bind-Value="form.Proteinas" />
+                    <ValidationMessage For="() => form.Proteinas" />
+                </div>
+                <div class="adm-field">
+                    <label>Carbohidratos (g)</label>
+                    <InputNumber @bind-Value="form.Carbohidratos" />
+                    <ValidationMessage For="() => form.Carbohidratos" />
+                </div>
+                <div class="adm-field">
+                    <label>Grasas (g)</label>
+                    <InputNumber @bind-Value="form.Grasas" />
+                    <ValidationMessage For="() => form.Grasas" />
+                </div>
+                <div class="adm-field">
+                    <label>Fibra (g)</label>
+                    <InputNumber @bind-Value="form.Fibra" />
+                    <ValidationMessage For="() => form.Fibra" />
+                </div>
+                <div class="adm-field adm-wide">
+                    <label>Descripción (opcional)</label>
+                    <InputText @bind-Value="form.Descripcion" placeholder="Notas sobre el alimento" />
+                    <ValidationMessage For="() => form.Descripcion" />
+                </div>
+            </div>
+
+            <div class="adm-actions">
+                <button type="submit" class="adm-btn adm-btn-primary" disabled="@guardando">
+                    @(editandoId == null ? "Registrar alimento" : "Guardar cambios")
+                </button>
+                @if (editandoId != null)
+                {
+                    <button type="button" class="adm-btn" @onclick="Cancelar">Cancelar</button>
+                }
+            </div>
+        </EditForm>
+    </div>
+
+    <div class="adm-card">
+        <div class="adm-toolbar">
+            <h2 style="margin:0">Listado de alimentos</h2>
+            <input class="adm-search" placeholder="Buscar por nombre o categoría..." @bind="filtro" @bind:event="oninput" />
+        </div>
+
+        @if (cargando)
+        {
+            <div class="adm-empty">Cargando...</div>
+        }
+        else if (!Filtrados.Any())
+        {
+            <div class="adm-empty">No hay alimentos para mostrar.</div>
+        }
+        else
+        {
+            <div class="adm-table-wrap">
+                <table class="adm-table">
+                    <thead>
+                        <tr>
+                            <th>NOMBRE</th>
+                            <th>CATEGORÍA</th>
+                            <th>PORCIÓN</th>
+                            <th class="adm-num">KCAL</th>
+                            <th class="adm-num">PROT.</th>
+                            <th class="adm-num">CARB.</th>
+                            <th class="adm-num">GRASAS</th>
+                            <th class="adm-num">FIBRA</th>
+                            <th>ESTADO</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var a in Filtrados)
+                        {
+                            <tr class="@(a.Id == editandoId ? "adm-row-sel" : "")">
+                                <td><strong>@a.Nombre</strong></td>
+                                <td>@(a.Categoria ?? "—")</td>
+                                <td>@a.Porcion</td>
+                                <td class="adm-num">@a.Calorias.ToString("0.##")</td>
+                                <td class="adm-num">@a.Proteinas.ToString("0.##")</td>
+                                <td class="adm-num">@a.Carbohidratos.ToString("0.##")</td>
+                                <td class="adm-num">@a.Grasas.ToString("0.##")</td>
+                                <td class="adm-num">@a.Fibra.ToString("0.##")</td>
+                                <td>
+                                    <span class="adm-badge @(a.Estado ? "adm-badge-ok" : "adm-badge-off")">
+                                        @(a.Estado ? "Activo" : "Inactivo")
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="adm-row-actions">
+                                        <button class="adm-btn adm-btn-sm" @onclick="() => Editar(a)">Editar</button>
+                                        <button class="adm-btn adm-btn-sm" @onclick="() => CambiarEstado(a.Id)">
+                                            @(a.Estado ? "Desactivar" : "Activar")
+                                        </button>
+                                        <button class="adm-btn adm-btn-sm adm-btn-danger" @onclick="() => Eliminar(a.Id)">Eliminar</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+
+    private List<Alimento> lista = new();
+    private AlimentoForm form = new();
+    private int? editandoId;
+    private string filtro = "";
+    private string mensaje = "";
+    private bool esError;
+    private bool cargando = true;
+    private bool guardando;
+
+    private IEnumerable<Alimento> Filtrados =>
+        lista.Where(a =>
+            string.IsNullOrWhiteSpace(filtro)
+            || a.Nombre.Contains(filtro, StringComparison.OrdinalIgnoreCase)
+            || (a.Categoria ?? "").Contains(filtro, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Cargar();
+    }
+
+    private async Task Cargar()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            lista = await ctx.Alimentos.AsNoTracking().OrderBy(a => a.Nombre).ToListAsync();
+        }
+        catch (Exception)
+        {
+            Avisar("No se pudo conectar con la base de datos. Revisa la cadena de conexión en appsettings.json.", true);
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private void Avisar(string texto, bool error)
+    {
+        mensaje = texto;
+        esError = error;
+    }
+
+    private void Editar(Alimento a)
+    {
+        editandoId = a.Id;
+        form = new AlimentoForm
+        {
+            Nombre = a.Nombre,
+            Categoria = a.Categoria,
+            Descripcion = a.Descripcion,
+            Porcion = a.Porcion,
+            Calorias = a.Calorias,
+            Proteinas = a.Proteinas,
+            Carbohidratos = a.Carbohidratos,
+            Grasas = a.Grasas,
+            Fibra = a.Fibra
+        };
+        mensaje = "";
+    }
+
+    private void Cancelar()
+    {
+        editandoId = null;
+        form = new AlimentoForm();
+    }
+
+    private async Task Guardar()
+    {
+        if (guardando) return;
+        guardando = true;
+
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            Alimento alimento;
+            bool nuevo = editandoId == null;
+
+            if (nuevo)
+            {
+                alimento = new Alimento { Estado = true, FechaRegistro = DateTime.Now };
+                ctx.Alimentos.Add(alimento);
+            }
+            else
+            {
+                var existente = await ctx.Alimentos.FindAsync(editandoId);
+                if (existente == null)
+                {
+                    Avisar("El alimento ya no existe.", true);
+                    Cancelar();
+                    await Cargar();
+                    return;
+                }
+                alimento = existente;
+            }
+
+            alimento.Nombre = form.Nombre.Trim();
+            alimento.Categoria = string.IsNullOrWhiteSpace(form.Categoria) ? null : form.Categoria.Trim();
+            alimento.Descripcion = string.IsNullOrWhiteSpace(form.Descripcion) ? null : form.Descripcion.Trim();
+            alimento.Porcion = form.Porcion.Trim();
+            alimento.Calorias = form.Calorias;
+            alimento.Proteinas = form.Proteinas;
+            alimento.Carbohidratos = form.Carbohidratos;
+            alimento.Grasas = form.Grasas;
+            alimento.Fibra = form.Fibra;
+
+            await ctx.SaveChangesAsync();
+
+            await Auditoria.RegistrarAsync(null,
+                nuevo ? "ALIMENTO_CREADO" : "ALIMENTO_EDITADO",
+                $"Alimento '{alimento.Nombre}' (Id {alimento.Id}).");
+
+            Avisar(nuevo ? "Alimento registrado correctamente." : "Alimento actualizado correctamente.", false);
+            Cancelar();
+            await Cargar();
+        }
+        catch (Exception)
+        {
+            Avisar("No se pudo guardar el alimento. Intenta nuevamente.", true);
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+
+    private async Task CambiarEstado(int id)
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var a = await ctx.Alimentos.FindAsync(id);
+            if (a == null) return;
+
+            a.Estado = !a.Estado;
+            await ctx.SaveChangesAsync();
+
+            await Auditoria.RegistrarAsync(null, "ALIMENTO_ESTADO",
+                $"Alimento '{a.Nombre}' ahora está {(a.Estado ? "activo" : "inactivo")}.");
+
+            Avisar($"'{a.Nombre}' ahora está {(a.Estado ? "activo" : "inactivo")}.", false);
+            await Cargar();
+        }
+        catch (Exception)
+        {
+            Avisar("No se pudo cambiar el estado del alimento.", true);
+        }
+    }
+
+    private async Task Eliminar(int id)
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var a = await ctx.Alimentos.FindAsync(id);
+            if (a == null) return;
+
+            bool enUso = await ctx.MenuAlimentos.AnyAsync(m => m.AlimentoId == id);
+
+            if (enUso)
+            {
+                a.Estado = false;
+                await ctx.SaveChangesAsync();
+                Avisar($"'{a.Nombre}' se usa en algún menú, por eso se desactivó en lugar de eliminarse.", false);
+            }
+            else
+            {
+                ctx.Alimentos.Remove(a);
+                await ctx.SaveChangesAsync();
+                await Auditoria.RegistrarAsync(null, "ALIMENTO_ELIMINADO", $"Alimento '{a.Nombre}' (Id {id}).");
+                Avisar($"'{a.Nombre}' fue eliminado.", false);
+            }
+
+            if (editandoId == id) Cancelar();
+            await Cargar();
+        }
+        catch (Exception)
+        {
+            Avisar("No se pudo eliminar el alimento.", true);
+        }
+    }
+
+    private class AlimentoForm
+    {
+        [Required(ErrorMessage = "El nombre es obligatorio.")]
+        [StringLength(120, ErrorMessage = "Máximo 120 caracteres.")]
+        public string Nombre { get; set; } = "";
+
+        [StringLength(80, ErrorMessage = "Máximo 80 caracteres.")]
+        public string? Categoria { get; set; }
+
+        [StringLength(300, ErrorMessage = "Máximo 300 caracteres.")]
+        public string? Descripcion { get; set; }
+
+        [Required(ErrorMessage = "La porción es obligatoria.")]
+        [StringLength(50, ErrorMessage = "Máximo 50 caracteres.")]
+        public string Porcion { get; set; } = "";
+
+        [Range(0, 99999, ErrorMessage = "Valor entre 0 y 99999.")]
+        public decimal Calorias { get; set; }
+
+        [Range(0, 99999, ErrorMessage = "Valor entre 0 y 99999.")]
+        public decimal Proteinas { get; set; }
+
+        [Range(0, 99999, ErrorMessage = "Valor entre 0 y 99999.")]
+        public decimal Carbohidratos { get; set; }
+
+        [Range(0, 99999, ErrorMessage = "Valor entre 0 y 99999.")]
+        public decimal Grasas { get; set; }
+
+        [Range(0, 99999, ErrorMessage = "Valor entre 0 y 99999.")]
+        public decimal Fibra { get; set; }
+    }
+}

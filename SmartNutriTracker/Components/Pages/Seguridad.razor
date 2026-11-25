@@ -1,0 +1,138 @@
+@page "/seguridad"
+@rendermode InteractiveServer
+
+@using Microsoft.EntityFrameworkCore
+@using SmartNutriTracker.Modelos
+@inject IDbContextFactory<SmartNutriTrackerContext> DbFactory
+
+<PageTitle>Seguridad | SmartNutriTracker</PageTitle>
+
+<div class="adm-page">
+
+    <div class="adm-head">
+        <span class="adm-tag">GESTIÓN DEL SISTEMA</span>
+        <h1>Seguridad</h1>
+        <p>Roles del sistema y registro de auditoría de las acciones realizadas.</p>
+    </div>
+
+    @if (!string.IsNullOrEmpty(error))
+    {
+        <div class="adm-msg error">@error</div>
+    }
+
+    <div class="adm-card">
+        <h2>Roles</h2>
+
+        @if (roles.Count == 0)
+        {
+            <div class="adm-empty">@(cargando ? "Cargando..." : "No hay roles registrados.")</div>
+        }
+        else
+        {
+            <div class="adm-table-wrap">
+                <table class="adm-table">
+                    <thead>
+                        <tr>
+                            <th>ROL</th>
+                            <th>DESCRIPCIÓN</th>
+                            <th class="adm-num">USUARIOS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var r in roles)
+                        {
+                            <tr>
+                                <td><strong>@r.Nombre</strong></td>
+                                <td>@(r.Descripcion ?? "—")</td>
+                                <td class="adm-num">@(usuariosPorRol.TryGetValue(r.Id, out var n) ? n : 0)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <div class="adm-card">
+        <div class="adm-toolbar">
+            <h2 style="margin:0">Auditoría (últimos 50 eventos)</h2>
+            <button class="adm-btn adm-btn-sm" @onclick="Cargar">Actualizar</button>
+        </div>
+
+        @if (logs.Count == 0)
+        {
+            <div class="adm-empty">@(cargando ? "Cargando..." : "Aún no hay eventos registrados.")</div>
+        }
+        else
+        {
+            <div class="adm-table-wrap">
+                <table class="adm-table">
+                    <thead>
+                        <tr>
+                            <th>FECHA</th>
+                            <th>ACCIÓN</th>
+                            <th>USUARIO</th>
+                            <th>DESCRIPCIÓN</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var l in logs)
+                        {
+                            <tr>
+                                <td style="white-space:nowrap">@l.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td><span class="adm-badge">@l.Accion</span></td>
+                                <td>@(l.Usuario?.Nombre ?? "—")</td>
+                                <td>@l.Descripcion</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+
+    private List<Role> roles = new();
+    private Dictionary<int, int> usuariosPorRol = new();
+    private List<LogsAuditorium> logs = new();
+    private string error = "";
+    private bool cargando = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Cargar();
+    }
+
+    private async Task Cargar()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            roles = await ctx.Roles.AsNoTracking().OrderBy(r => r.Id).ToListAsync();
+
+            usuariosPorRol = await ctx.Usuarios.AsNoTracking()
+                .GroupBy(u => u.RolId)
+                .Select(g => new { g.Key, Total = g.Count() })
+                .ToDictionaryAsync(x => x.Key, x => x.Total);
+
+            logs = await ctx.LogsAuditoria.AsNoTracking()
+                .Include(l => l.Usuario)
+                .OrderByDescending(l => l.Fecha)
+                .Take(50)
+                .ToListAsync();
+
+            error = "";
+        }
+        catch (Exception)
+        {
+            error = "No se pudo conectar con la base de datos. Revisa la cadena de conexión en appsettings.json.";
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+}

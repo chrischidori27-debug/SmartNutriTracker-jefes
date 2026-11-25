@@ -1,27 +1,7 @@
 namespace SmartNutriTracker.Servicios
 {
-    // HU-24: recomendación nutricional basada en el IMC
-
-    public enum CategoriaImc
-    {
-        BajoPeso,
-        PesoNormal,
-        Sobrepeso,
-        Obesidad
-    }
-
-    public record RecomendacionImc(
-        decimal Imc,
-        CategoriaImc Categoria,
-        string NombreCategoria,
-        string Resumen,
-        int AjusteCaloricoPorcentaje,
-        int ProteinasPorcentaje,
-        int CarbohidratosPorcentaje,
-        int GrasasPorcentaje,
-        IReadOnlyList<string> Consejos);
-
-    public record EvaluacionMenu(bool Adecuado, string Mensaje);
+    // HU-24: modelo nutricional basado en el IMC
+    public record ResultadoImc(decimal Imc, string Categoria, string Recomendacion);
 
     public class ImcServicio
     {
@@ -32,106 +12,56 @@ namespace SmartNutriTracker.Servicios
             _logger = logger;
         }
 
-        // IMC = peso (kg) / talla (m)^2
-        public decimal CalcularImc(decimal pesoKg, decimal tallaCm)
+        // pesoKg en kilogramos; altura en metros (si es mayor a 3 se interpreta como centímetros).
+        public ResultadoImc Calcular(decimal pesoKg, decimal altura)
         {
-            if (pesoKg <= 0 || pesoKg > 500)
-                throw new ArgumentOutOfRangeException(nameof(pesoKg), "El peso debe estar entre 1 y 500 kg.");
-
-            if (tallaCm < 50 || tallaCm > 260)
-                throw new ArgumentOutOfRangeException(nameof(tallaCm), "La talla debe estar entre 50 y 260 cm.");
-
-            decimal tallaM = tallaCm / 100m;
-            return Math.Round(pesoKg / (tallaM * tallaM), 1);
-        }
-
-        // Clasificación de la OMS para adultos
-        public CategoriaImc Clasificar(decimal imc) => imc switch
-        {
-            < 18.5m => CategoriaImc.BajoPeso,
-            < 25m => CategoriaImc.PesoNormal,
-            < 30m => CategoriaImc.Sobrepeso,
-            _ => CategoriaImc.Obesidad
-        };
-
-        public RecomendacionImc Recomendar(decimal pesoKg, decimal tallaCm)
-        {
-            decimal imc = CalcularImc(pesoKg, tallaCm);
-            var categoria = Clasificar(imc);
-
-            _logger.LogInformation("Recomendación por IMC: IMC {Imc}, categoría {Categoria}.", imc, categoria);
-
-            return categoria switch
+            if (altura > 3)
             {
-                CategoriaImc.BajoPeso => new RecomendacionImc(
-                    imc, categoria, "Bajo peso",
-                    "Se recomienda un menú con superávit calórico moderado y alta densidad nutricional.",
-                    15, 20, 55, 25,
-                    new[]
-                    {
-                        "Aumenta las porciones de forma gradual.",
-                        "Incluye frutos secos, legumbres y lácteos.",
-                        "Haz 5 comidas al día, con colaciones saludables."
-                    }),
+                altura /= 100;
+            }
 
-                CategoriaImc.PesoNormal => new RecomendacionImc(
-                    imc, categoria, "Peso normal",
-                    "Se recomienda un menú equilibrado que mantenga las calorías actuales.",
-                    0, 20, 55, 25,
-                    new[]
-                    {
-                        "Mantén una dieta variada con frutas y verduras.",
-                        "Bebe suficiente agua durante el día.",
-                        "Limita los productos ultraprocesados."
-                    }),
+            if (pesoKg < 10 || pesoKg > 300)
+            {
+                throw new ArgumentOutOfRangeException(nameof(pesoKg), "El peso debe estar entre 10 y 300 kg.");
+            }
 
-                CategoriaImc.Sobrepeso => new RecomendacionImc(
-                    imc, categoria, "Sobrepeso",
-                    "Se recomienda un menú con déficit calórico leve y más proteína y fibra.",
-                    -10, 25, 50, 25,
-                    new[]
-                    {
-                        "Prioriza verduras, legumbres y cereales integrales.",
-                        "Reduce bebidas azucaradas y frituras.",
-                        "Combina la alimentación con actividad física regular."
-                    }),
+            if (altura < 0.5m || altura > 2.5m)
+            {
+                throw new ArgumentOutOfRangeException(nameof(altura), "La altura debe estar entre 0.5 y 2.5 metros.");
+            }
 
-                _ => new RecomendacionImc(
-                    imc, categoria, "Obesidad",
-                    "Se recomienda un menú con déficit calórico moderado, supervisado por un nutricionista.",
-                    -15, 25, 45, 30,
-                    new[]
-                    {
-                        "Consulta con un nutricionista para un plan personalizado.",
-                        "Elige alimentos ricos en fibra y proteína magra.",
-                        "Evita azúcares añadidos y grasas saturadas."
-                    })
-            };
+            decimal imc = Math.Round(pesoKg / (altura * altura), 1);
+
+            var (categoria, recomendacion) = Clasificar(imc);
+
+            _logger.LogInformation("IMC calculado: {Imc} ({Categoria}).", imc, categoria);
+
+            return new ResultadoImc(imc, categoria, recomendacion);
         }
 
-        // Compara la distribución de macros de un menú con la recomendada (tolerancia de ±10 puntos).
-        public EvaluacionMenu EvaluarMenu(ResumenNutricional menu, RecomendacionImc recomendacion)
+        // Categorías de la OMS y orientación general para armar el menú
+        public static (string Categoria, string Recomendacion) Clasificar(decimal imc)
         {
-            ArgumentNullException.ThrowIfNull(menu);
-            ArgumentNullException.ThrowIfNull(recomendacion);
+            if (imc < 18.5m)
+            {
+                return ("Bajo peso",
+                    "Menú con mayor aporte calórico y proteico: priorizar legumbres, lácteos, frutos secos y carbohidratos complejos.");
+            }
 
-            const decimal tolerancia = 10m;
+            if (imc < 25m)
+            {
+                return ("Peso normal",
+                    "Menú equilibrado para mantener el peso: variedad de frutas, verduras, proteínas magras y cereales integrales.");
+            }
 
-            if (menu.Calorias <= 0)
-                return new EvaluacionMenu(false, "El menú no tiene información nutricional.");
+            if (imc < 30m)
+            {
+                return ("Sobrepeso",
+                    "Menú con menor densidad calórica: más verduras y fibra, reducir azúcares y grasas saturadas.");
+            }
 
-            var desvios = new List<string>();
-
-            if (Math.Abs(menu.PorcentajeProteinas - recomendacion.ProteinasPorcentaje) > tolerancia)
-                desvios.Add("proteínas");
-            if (Math.Abs(menu.PorcentajeCarbohidratos - recomendacion.CarbohidratosPorcentaje) > tolerancia)
-                desvios.Add("carbohidratos");
-            if (Math.Abs(menu.PorcentajeGrasas - recomendacion.GrasasPorcentaje) > tolerancia)
-                desvios.Add("grasas");
-
-            return desvios.Count == 0
-                ? new EvaluacionMenu(true, $"El menú es adecuado para el perfil ({recomendacion.NombreCategoria}).")
-                : new EvaluacionMenu(false, $"El menú se aleja de lo recomendado en: {string.Join(", ", desvios)}.");
+            return ("Obesidad",
+                "Menú hipocalórico supervisado por un nutricionista: controlar porciones y evitar ultraprocesados.");
         }
     }
 }

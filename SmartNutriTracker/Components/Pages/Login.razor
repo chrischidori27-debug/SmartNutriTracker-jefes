@@ -1,6 +1,10 @@
 ﻿@page "/login"
 @rendermode InteractiveServer
 
+@using SmartNutriTracker.Servicios
+@inject UsuarioServicio UsuarioServicio
+@inject NavigationManager Navigation
+
 <PageTitle>Iniciar sesión | SmartNutriTracker</PageTitle>
 
 <div class="login-page">
@@ -214,8 +218,48 @@
         MostrarPassword = !MostrarPassword;
     }
 
-    private void IniciarSesion()
+    private bool Procesando = false;
+
+    private async Task IniciarSesion()
     {
-        Mensaje = "La conexión de autenticación se implementará en el siguiente paso.";
+        if (Procesando)
+        {
+            return;
+        }
+
+        Mensaje = "";
+
+        if (string.IsNullOrWhiteSpace(Correo) || string.IsNullOrWhiteSpace(Contrasena))
+        {
+            Mensaje = "Ingresa tu correo y tu contraseña.";
+            return;
+        }
+
+        Procesando = true;
+
+        try
+        {
+            var usuario = await UsuarioServicio.IniciarSesionAsync(Correo, Contrasena);
+
+            if (usuario == null)
+            {
+                Mensaje = "Correo o contraseña incorrectos.";
+                return;
+            }
+
+            Mensaje = $"Bienvenido, {usuario.Nombre} ({usuario.Rol.Nombre}).";
+            StateHasChanged();
+
+            await Task.Delay(1200);
+            Navigation.NavigateTo("/");
+        }
+        catch (Exception)
+        {
+            Mensaje = "No se pudo iniciar sesión. Intenta nuevamente.";
+        }
+        finally
+        {
+            Procesando = false;
+        }
     }
 }
