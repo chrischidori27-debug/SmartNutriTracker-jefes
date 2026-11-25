@@ -1,5 +1,7 @@
 ﻿@page "/login"
-@rendermode InteractiveServer
+@inject UsuarioServicio UsuarioServicio
+@inject UsuarioSesion UsuarioSesion
+@inject NavigationManager Navigation
 
 <PageTitle>Iniciar sesión | SmartNutriTracker</PageTitle>
 
@@ -149,8 +151,8 @@
 
                     </div>
 
-                    <button type="submit" class="login-button">
-                        Iniciar sesión
+                    <button type="submit" class="login-button" disabled="@Cargando">
+                        @(Cargando ? "Ingresando..." : "Iniciar sesión")
                         <span>→</span>
                     </button>
 
@@ -186,11 +188,11 @@
 </div>
 
 @code {
-
     private string Correo = "";
     private string Contrasena = "";
 
     private bool MostrarPassword = false;
+    private bool Cargando = false;
 
     private string Mensaje = "";
 
@@ -214,8 +216,41 @@
         MostrarPassword = !MostrarPassword;
     }
 
-    private void IniciarSesion()
+    private async Task IniciarSesion()
     {
-        Mensaje = "La conexión de autenticación se implementará en el siguiente paso.";
+        if (Cargando == true)
+        {
+            return;
+        }
+
+        Cargando = true;
+        Mensaje = "";
+
+        try
+        {
+            var usuario = await UsuarioServicio.IniciarSesionAsync(
+                Correo,
+                Contrasena
+            );
+
+            if (usuario == null)
+            {
+                Mensaje = "Correo o contraseña incorrectos, o cuenta deshabilitada.";
+                return;
+            }
+
+            UsuarioSesion.IniciarSesion(usuario);
+
+            Navigation.NavigateTo("/");
+        }
+        catch (Exception)
+        {
+            Mensaje = "Ocurrió un error al iniciar sesión. Inténtalo nuevamente.";
+        }
+        finally
+        {
+            Cargando = false;
+        }
     }
 }
+

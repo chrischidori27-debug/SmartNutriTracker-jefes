@@ -22,6 +22,9 @@ builder.Services.AddScoped<IPasswordHasher<Usuario>, PasswordHasher<Usuario>>();
 
 // Servicio de usuarios
 builder.Services.AddScoped<UsuarioServicio>();
+builder.Services.AddScoped<UsuarioSesion>();
+builder.Services.AddScoped<AlimentoServicio>();
+builder.Services.AddScoped<MenuServicio>();
 
 var app = builder.Build();
 

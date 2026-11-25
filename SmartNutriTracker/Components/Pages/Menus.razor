@@ -1,0 +1,444 @@
+﻿@page "/menus"
+
+@using System.Linq
+
+@inject MenuServicio MenuServicio
+@inject UsuarioSesion UsuarioSesion
+@inject NavigationManager NavigationManager
+
+<PageTitle>Menús diarios | SmartNutriTracker</PageTitle>
+
+<div class="menus-container">
+
+    <div class="menus-header">
+        <div>
+            <span class="menus-etiqueta">PLANIFICACIÓN NUTRICIONAL</span>
+            <h1>Menús diarios</h1>
+            <p>Organiza los alimentos y administra los menús de cada día.</p>
+        </div>
+
+        <button class="btn-nuevo" @onclick="MostrarFormulario">
+            + Crear menú
+        </button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Mensaje))
+    {
+        <div class="mensaje @ClaseMensaje">@Mensaje</div>
+    }
+
+    @if (MostrarCrear)
+    {
+        <div class="menu-panel">
+            <h2>Nuevo menú diario</h2>
+
+            <div class="form-grid">
+                <div>
+                    <label>Nombre del menú</label>
+                    <input @bind="NombreMenu" placeholder="Ej. Almuerzo saludable" />
+                </div>
+
+                <div>
+                    <label>Fecha</label>
+                    <input type="date" @bind="FechaMenu" />
+                </div>
+
+                <div class="campo-completo">
+                    <label>Descripción</label>
+                    <textarea @bind="DescripcionMenu"
+                              placeholder="Descripción del menú..."></textarea>
+                </div>
+            </div>
+
+            <div class="acciones">
+                <button class="btn-guardar" @onclick="CrearMenu">
+                    Guardar menú
+                </button>
+
+                <button class="btn-cancelar" @onclick="CancelarFormulario">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    }
+
+    @if (MenuSeleccionado != null)
+    {
+        <div class="menu-panel">
+
+            <h2>Administrar menú</h2>
+
+            <p class="texto-secundario">
+                Menú seleccionado:
+                <strong>@MenuSeleccionado.Nombre</strong>
+            </p>
+
+            <div class="form-grid">
+                <div>
+                    <label>Seleccionar alimento</label>
+
+                    <select @bind="AlimentoSeleccionado">
+                        <option value="0">Selecciona un alimento</option>
+
+                        @foreach (var alimento in Alimentos)
+                        {
+                            <option value="@alimento.Id">
+                                @alimento.Nombre (@alimento.Porcion)
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <div>
+                    <label>Cantidad de porciones</label>
+
+                    <input type="number"
+                           min="0.01"
+                           step="0.01"
+                           @bind="Cantidad" />
+                </div>
+            </div>
+
+            <div class="acciones">
+                <button class="btn-guardar" @onclick="AgregarAlimento">
+                    Agregar alimento
+                </button>
+
+                <button class="btn-cancelar" @onclick="CerrarDetalle">
+                    Cerrar
+                </button>
+            </div>
+
+            @if (MenuSeleccionado.MenuAlimentos.Any())
+            {
+                <h3>Alimentos asignados</h3>
+
+                <div class="tabla-contenedor">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Alimento</th>
+                                <th>Porción</th>
+                                <th>Cantidad</th>
+                                <th>Calorías</th>
+                                <th>Proteínas</th>
+                                <th>Carbohidratos</th>
+                                <th>Grasas</th>
+                                <th>Fibra</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var item in MenuSeleccionado.MenuAlimentos)
+                            {
+                                <tr>
+                                    <td>@item.Alimento.Nombre</td>
+                                    <td>@item.Alimento.Porcion</td>
+                                    <td>@item.Cantidad</td>
+                                    <td>@((item.Alimento.Calorias * item.Cantidad).ToString("N2"))</td>
+                                    <td>@((item.Alimento.Proteinas * item.Cantidad).ToString("N2")) g</td>
+                                    <td>@((item.Alimento.Carbohidratos * item.Cantidad).ToString("N2")) g</td>
+                                    <td>@((item.Alimento.Grasas * item.Cantidad).ToString("N2")) g</td>
+                                    <td>@((item.Alimento.Fibra * item.Cantidad).ToString("N2")) g</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>Resumen nutricional del menú</h3>
+
+                <div class="resumen-nutricional">
+
+                    <div class="nutriente-card">
+                        <span>CALORÍAS TOTALES</span>
+                        <strong>@TotalCalorias.ToString("N2")</strong>
+                        <small>kcal</small>
+                    </div>
+
+                    <div class="nutriente-card">
+                        <span>PROTEÍNAS</span>
+                        <strong>@TotalProteinas.ToString("N2")</strong>
+                        <small>gramos</small>
+                    </div>
+
+                    <div class="nutriente-card">
+                        <span>CARBOHIDRATOS</span>
+                        <strong>@TotalCarbohidratos.ToString("N2")</strong>
+                        <small>gramos</small>
+                    </div>
+
+                    <div class="nutriente-card">
+                        <span>GRASAS</span>
+                        <strong>@TotalGrasas.ToString("N2")</strong>
+                        <small>gramos</small>
+                    </div>
+
+                    <div class="nutriente-card">
+                        <span>FIBRA</span>
+                        <strong>@TotalFibra.ToString("N2")</strong>
+                        <small>gramos</small>
+                    </div>
+
+                </div>
+            }
+            else
+            {
+                <div class="vacio">
+                    <h3>Este menú todavía no tiene alimentos</h3>
+                    <p>Agrega alimentos para calcular su información nutricional.</p>
+                </div>
+            }
+
+        </div>
+    }
+
+    <div class="lista-header">
+        <h2>Menús registrados</h2>
+        <span>@ListaMenus.Count menús</span>
+    </div>
+
+    @if (Cargando)
+    {
+        <p class="texto-secundario">Cargando menús...</p>
+    }
+    else if (ListaMenus.Count == 0)
+    {
+        <div class="vacio">
+            <h3>No hay menús registrados</h3>
+            <p>Comienza creando tu primer menú diario.</p>
+        </div>
+    }
+    else
+    {
+        <div class="menus-grid">
+
+            @foreach (var menu in ListaMenus)
+            {
+                <div class="menu-card">
+
+                    <div class="card-fecha">
+                        @menu.Fecha.ToString("dd/MM/yyyy")
+                    </div>
+
+                    <h3>@menu.Nombre</h3>
+
+                    <p>
+                        @(string.IsNullOrWhiteSpace(menu.Descripcion)
+                            ? "Sin descripción"
+                            : menu.Descripcion)
+                    </p>
+
+                    <div class="card-info">
+                        <span>Alimentos asignados</span>
+                        <strong>@menu.MenuAlimentos.Count</strong>
+                    </div>
+
+                    <button class="btn-detalle"
+                            @onclick="() => AbrirDetalle(menu.Id)">
+                        Administrar alimentos
+                    </button>
+
+                </div>
+            }
+
+        </div>
+    }
+
+</div>
+
+@code {
+    private List<MenusDiario> ListaMenus = new();
+    private List<Alimento> Alimentos = new();
+
+    private MenusDiario? MenuSeleccionado;
+
+    private string NombreMenu = "";
+    private string DescripcionMenu = "";
+    private DateTime FechaMenu = DateTime.Today;
+
+    private int AlimentoSeleccionado = 0;
+    private decimal Cantidad = 1;
+
+    private bool MostrarCrear = false;
+    private bool Cargando = true;
+
+    private string Mensaje = "";
+    private string ClaseMensaje = "";
+
+    // Cálculos nutricionales del menú seleccionado
+
+    private decimal TotalCalorias
+    {
+        get
+        {
+            if (MenuSeleccionado == null) return 0;
+
+            return MenuSeleccionado.MenuAlimentos.Sum(
+                item => item.Alimento.Calorias * item.Cantidad
+            );
+        }
+    }
+
+    private decimal TotalProteinas
+    {
+        get
+        {
+            if (MenuSeleccionado == null) return 0;
+
+            return MenuSeleccionado.MenuAlimentos.Sum(
+                item => item.Alimento.Proteinas * item.Cantidad
+            );
+        }
+    }
+
+    private decimal TotalCarbohidratos
+    {
+        get
+        {
+            if (MenuSeleccionado == null) return 0;
+
+            return MenuSeleccionado.MenuAlimentos.Sum(
+                item => item.Alimento.Carbohidratos * item.Cantidad
+            );
+        }
+    }
+
+    private decimal TotalGrasas
+    {
+        get
+        {
+            if (MenuSeleccionado == null) return 0;
+
+            return MenuSeleccionado.MenuAlimentos.Sum(
+                item => item.Alimento.Grasas * item.Cantidad
+            );
+        }
+    }
+
+    private decimal TotalFibra
+    {
+        get
+        {
+            if (MenuSeleccionado == null) return 0;
+
+            return MenuSeleccionado.MenuAlimentos.Sum(
+                item => item.Alimento.Fibra * item.Cantidad
+            );
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!UsuarioSesion.EstaAutenticado)
+        {
+            NavigationManager.NavigateTo("/login");
+            return;
+        }
+
+        await CargarDatos();
+    }
+
+    private async Task CargarDatos()
+    {
+        Cargando = true;
+
+        ListaMenus = await MenuServicio.ListarMenusAsync();
+        Alimentos = await MenuServicio.ListarAlimentosAsync();
+
+        Cargando = false;
+    }
+
+    private void MostrarFormulario()
+    {
+        NombreMenu = "";
+        DescripcionMenu = "";
+        FechaMenu = DateTime.Today;
+        MostrarCrear = true;
+        Mensaje = "";
+    }
+
+    private void CancelarFormulario()
+    {
+        MostrarCrear = false;
+    }
+
+    private async Task CrearMenu()
+    {
+        if (string.IsNullOrWhiteSpace(NombreMenu))
+        {
+            MostrarMensaje("Ingresa el nombre del menú.", false);
+            return;
+        }
+
+        var resultado = await MenuServicio.CrearMenuAsync(
+            NombreMenu,
+            DescripcionMenu,
+            DateOnly.FromDateTime(FechaMenu),
+            UsuarioSesion.UsuarioId
+        );
+
+        MostrarMensaje(resultado.Mensaje, resultado.Exito);
+
+        if (resultado.Exito)
+        {
+            MostrarCrear = false;
+            await CargarDatos();
+        }
+    }
+
+    private async Task AbrirDetalle(int id)
+    {
+        Mensaje = "";
+
+        MenuSeleccionado = await MenuServicio.ObtenerMenuAsync(id);
+
+        AlimentoSeleccionado = 0;
+        Cantidad = 1;
+    }
+
+    private async Task AgregarAlimento()
+    {
+        if (MenuSeleccionado == null)
+        {
+            return;
+        }
+
+        if (AlimentoSeleccionado <= 0)
+        {
+            MostrarMensaje("Selecciona un alimento.", false);
+            return;
+        }
+
+        if (Cantidad <= 0)
+        {
+            MostrarMensaje("La cantidad debe ser mayor que cero.", false);
+            return;
+        }
+
+        var resultado = await MenuServicio.AgregarAlimentoAsync(
+            MenuSeleccionado.Id,
+            AlimentoSeleccionado,
+            Cantidad
+        );
+
+        MostrarMensaje(resultado.Mensaje, resultado.Exito);
+
+        if (resultado.Exito)
+        {
+            await AbrirDetalle(MenuSeleccionado.Id);
+            await CargarDatos();
+        }
+    }
+
+    private void CerrarDetalle()
+    {
+        MenuSeleccionado = null;
+    }
+
+    private void MostrarMensaje(string mensaje, bool exito)
+    {
+        Mensaje = mensaje;
+        ClaseMensaje = exito ? "mensaje-exito" : "mensaje-error";
+    }
+}

@@ -53,6 +53,53 @@ El sistema está orientado a la comunidad educativa y contempla diferentes perfi
 - Organizar alimentos y menús diarios.
 - Gestionar usuarios mediante roles y permisos.
 - Ofrecer una interfaz intuitiva, moderna y accesible.
+- 
+## 📖 Historias de usuario que aborda el proyecto
+
+SmartNutriTracker se desarrolla a partir de un conjunto de historias de usuario que representan las necesidades principales de la comunidad educativa. Estas historias permiten organizar el desarrollo del sistema y establecer las funcionalidades que se buscan implementar.
+
+El proyecto contempla dos áreas principales de trabajo: **Autenticación y Seguridad** y **Gestión de Alimentos**.
+
+### Equipo 1: Autenticación y Seguridad
+
+Esta área se enfoca en proteger el acceso a la plataforma, administrar los perfiles de usuario y mantener un control sobre las operaciones del sistema.
+
+| Código | Historia de usuario | ¿Cómo la aborda SmartNutriTracker? |
+|---|---|---|
+| HU-01 | Registro de usuarios con roles | Mediante un formulario de registro que solicita nombre, correo, contraseña y rol. Los datos se validan y almacenan en SQL Server, protegiendo las contraseñas mediante hash. |
+| HU-02 | Inicio de sesión | Mediante la validación del correo electrónico y la contraseña, verificando las credenciales almacenadas y el estado de la cuenta. |
+| HU-03 | Autenticación mediante JWT | Se contempla la incorporación de tokens JWT para gestionar la autenticación y proteger el acceso a los recursos. |
+| HU-04 | Gestión de roles y permisos | Mediante los roles Administrador, Docente, Estudiante y Nutricionista, que permiten diferenciar las responsabilidades de cada perfil. |
+| HU-05 | Registro de auditoría | Mediante la tabla `LogsAuditoria`, diseñada para almacenar eventos y operaciones realizadas dentro del sistema. |
+
+### Equipo 3: Gestión de Alimentos
+
+Esta área busca facilitar la administración de información nutricional y la organización de menús diarios para la comunidad educativa.
+
+| Código | Historia de usuario | ¿Cómo la aborda SmartNutriTracker? |
+|---|---|---|
+| HU-14 | Registrar alimentos | Mediante un módulo destinado al registro de alimentos y sus respectivos valores nutricionales, como calorías, proteínas, carbohidratos, grasas y fibra. |
+| HU-15 | Editar y eliminar alimentos | Mediante operaciones de actualización y eliminación de registros de alimentos almacenados en la base de datos. |
+| HU-16 | Crear menús diarios | Mediante la organización de alimentos en menús asociados a una fecha y a un usuario responsable. |
+| HU-17 | Consultar resumen nutricional | Mediante el cálculo y la presentación de los valores nutricionales de los alimentos incluidos en cada menú. |
+
+### Estado de implementación
+
+Las historias de usuario se encuentran en distintas etapas de desarrollo. La siguiente clasificación permite diferenciar las funcionalidades disponibles de aquellas que todavía requieren implementación.
+
+| Historia | Estado |
+|---|---|
+| HU-01 | Implementada: registro y validación de usuarios. |
+| HU-02 | Parcial: validación de credenciales disponible en el servicio; falta completar la sesión de autenticación. |
+| HU-03 | Pendiente: integración de JWT. |
+| HU-04 | Parcial: roles almacenados y validados en el registro; falta completar la autorización por permisos. |
+| HU-05 | Pendiente: tabla preparada, falta implementar el registro de eventos. |
+| HU-14 | Pendiente: módulo de registro de alimentos. |
+| HU-15 | Pendiente: edición y eliminación de alimentos. |
+| HU-16 | Pendiente: creación y administración de menús. |
+| HU-17 | Pendiente: cálculo y presentación del resumen nutricional. |
+
+Estas historias constituyen la base funcional del proyecto y orientan su evolución hacia una plataforma integral de gestión nutricional educativa.
 
 ## ✨ Funcionalidades del sistema
 

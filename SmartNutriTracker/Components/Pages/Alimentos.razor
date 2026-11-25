@@ -1,0 +1,459 @@
+﻿@page "/alimentos"
+
+@inject AlimentoServicio AlimentoServicio
+
+<PageTitle>Alimentos | SmartNutriTracker</PageTitle>
+
+<div class="alimentos-page">
+
+    <div class="alimentos-header">
+        <div>
+            <span class="alimentos-tag">GESTIÓN NUTRICIONAL</span>
+            <h1>Catálogo de alimentos</h1>
+            <p>Administra los alimentos y consulta su información nutricional.</p>
+        </div>
+
+        <div class="total-alimentos">
+            <span>ALIMENTOS ACTIVOS</span>
+            <strong>@ListaAlimentos.Count</strong>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Mensaje))
+    {
+        <div class="mensaje @(OperacionExitosa ? "mensaje-exito" : "mensaje-error")">
+            @Mensaje
+        </div>
+    }
+
+    <div class="alimentos-grid">
+
+        <!-- FORMULARIO -->
+        <section class="alimento-form-card">
+
+            <div class="card-heading">
+                <div>
+                    <span class="seccion-tag">INFORMACIÓN GENERAL</span>
+                    <h2>@(Editando ? "Editar alimento" : "Registrar alimento")</h2>
+                </div>
+
+                <span class="form-number">@(Editando ? "02" : "01")</span>
+            </div>
+
+            <EditForm Model="Formulario" OnValidSubmit="GuardarAsync">
+                <DataAnnotationsValidator />
+
+                <div class="campo">
+                    <label>Nombre del alimento *</label>
+                    <InputText @bind-Value="Formulario.Nombre"
+                               placeholder="Ej. Arroz cocido"
+                               maxlength="120" />
+                </div>
+
+                <div class="campo">
+                    <label>Categoría</label>
+                    <InputText @bind-Value="Formulario.Categoria"
+                               placeholder="Ej. Cereales"
+                               maxlength="80" />
+                </div>
+
+                <div class="campo">
+                    <label>Descripción</label>
+                    <InputTextArea @bind-Value="Formulario.Descripcion"
+                                   placeholder="Descripción del alimento..."
+                                   maxlength="300" />
+                </div>
+
+                <div class="campo">
+                    <label>Porción de referencia *</label>
+                    <InputText @bind-Value="Formulario.Porcion"
+                               placeholder="Ej. 100 g"
+                               maxlength="50" />
+                    <small>Los valores nutricionales corresponden a esta porción.</small>
+                </div>
+
+                <div class="nutrientes-heading">
+                    <h3>Valores nutricionales</h3>
+                    <span>Por porción</span>
+                </div>
+
+                <div class="nutrientes-grid">
+
+                    <div class="campo">
+                        <label>Calorías (kcal)</label>
+                        <InputNumber @bind-Value="Formulario.Calorias"
+                                     min="0"
+                                     step="0.01" />
+                    </div>
+
+                    <div class="campo">
+                        <label>Proteínas (g)</label>
+                        <InputNumber @bind-Value="Formulario.Proteinas"
+                                     min="0"
+                                     step="0.01" />
+                    </div>
+
+                    <div class="campo">
+                        <label>Carbohidratos (g)</label>
+                        <InputNumber @bind-Value="Formulario.Carbohidratos"
+                                     min="0"
+                                     step="0.01" />
+                    </div>
+
+                    <div class="campo">
+                        <label>Grasas (g)</label>
+                        <InputNumber @bind-Value="Formulario.Grasas"
+                                     min="0"
+                                     step="0.01" />
+                    </div>
+
+                    <div class="campo">
+                        <label>Fibra (g)</label>
+                        <InputNumber @bind-Value="Formulario.Fibra"
+                                     min="0"
+                                     step="0.01" />
+                    </div>
+
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-guardar" disabled="@Guardando">
+                        @(Guardando ? "Guardando..." : Editando ? "Guardar cambios" : "Registrar alimento")
+                    </button>
+
+                    @if (Editando)
+                    {
+                        <button type="button" class="btn-cancelar"
+                                @onclick="CancelarEdicion">
+                            Cancelar
+                        </button>
+                    }
+                </div>
+
+            </EditForm>
+
+            <p class="form-required">* Campos obligatorios.</p>
+
+        </section>
+
+        <!-- LISTADO -->
+        <section class="alimento-list-card">
+
+            <div class="list-heading">
+                <div>
+                    <span class="seccion-tag">BASE DE DATOS</span>
+                    <h2>Alimentos registrados</h2>
+                </div>
+            </div>
+
+            <div class="buscador">
+                <span>⌕</span>
+                <input type="text"
+                       placeholder="Buscar por nombre o categoría..."
+                       @bind="Busqueda"
+                       @bind:event="oninput" />
+            </div>
+
+            @if (Cargando)
+            {
+                <div class="estado-vacio">
+                    Cargando alimentos...
+                </div>
+            }
+            else if (AlimentosFiltrados.Count == 0)
+            {
+                <div class="estado-vacio">
+                    <div class="estado-icono">—</div>
+                    <strong>No hay alimentos disponibles</strong>
+                    <p>Registra un alimento para comenzar a construir el catálogo.</p>
+                </div>
+            }
+            else
+            {
+                <div class="alimentos-lista">
+
+                    @foreach (var alimento in AlimentosFiltrados)
+                    {
+                        <article class="alimento-item" @key="alimento.Id">
+
+                            <div class="alimento-item-top">
+                                <div>
+                                    <h3>@alimento.Nombre</h3>
+                                    <span class="categoria">@(!string.IsNullOrWhiteSpace(alimento.Categoria) ? alimento.Categoria : "Sin categoría")</span>
+                                </div>
+
+                                <span class="alimento-id">#@alimento.Id</span>
+                            </div>
+
+                            <p class="porcion">Porción: @alimento.Porcion</p>
+
+                            <div class="resumen-nutricional">
+                                <div>
+                                    <strong>@alimento.Calorias.ToString("N2")</strong>
+                                    <span>kcal</span>
+                                </div>
+                                <div>
+                                    <strong>@alimento.Proteinas.ToString("N2")</strong>
+                                    <span>Proteínas</span>
+                                </div>
+                                <div>
+                                    <strong>@alimento.Carbohidratos.ToString("N2")</strong>
+                                    <span>Carbohidratos</span>
+                                </div>
+                                <div>
+                                    <strong>@alimento.Grasas.ToString("N2")</strong>
+                                    <span>Grasas</span>
+                                </div>
+                                <div>
+                                    <strong>@alimento.Fibra.ToString("N2")</strong>
+                                    <span>Fibra</span>
+                                </div>
+                            </div>
+
+                            <div class="alimento-actions">
+                                <button type="button"
+                                        class="btn-editar"
+                                        @onclick="() => PrepararEdicion(alimento)">
+                                    Editar
+                                </button>
+
+                                <button type="button"
+                                        class="btn-eliminar"
+                                        @onclick="() => SolicitarDesactivacion(alimento.Id)">
+                                    Desactivar
+                                </button>
+                            </div>
+
+                            @if (IdPendienteDesactivar == alimento.Id)
+                            {
+                                <div class="confirmacion">
+                                    <p>¿Deseas desactivar este alimento?</p>
+                                    <div>
+                                        <button type="button"
+                                                class="btn-eliminar"
+                                                @onclick="() => DesactivarAsync(alimento.Id)">
+                                            Sí, desactivar
+                                        </button>
+                                        <button type="button"
+                                                class="btn-cancelar"
+                                                @onclick="CancelarDesactivacion">
+                                            Cancelar
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+
+                        </article>
+                    }
+
+                </div>
+            }
+
+            <div class="list-footer">
+                Mostrando @AlimentosFiltrados.Count de @ListaAlimentos.Count alimentos activos.
+            </div>
+
+        </section>
+
+    </div>
+
+</div>
+
+@code {
+
+    private List<Alimento> ListaAlimentos = new();
+    private Alimento Formulario = new();
+
+    private string Busqueda = "";
+    private string Mensaje = "";
+
+    private bool OperacionExitosa = false;
+    private bool Editando = false;
+    private bool Cargando = true;
+    private bool Guardando = false;
+
+    private int IdPendienteDesactivar = 0;
+
+    private List<Alimento> AlimentosFiltrados
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(Busqueda))
+            {
+                return ListaAlimentos;
+            }
+
+            return ListaAlimentos.Where(a =>
+                a.Nombre.Contains(Busqueda, StringComparison.OrdinalIgnoreCase) ||
+                (a.Categoria != null &&
+                 a.Categoria.Contains(Busqueda, StringComparison.OrdinalIgnoreCase))
+            ).ToList();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarAlimentosAsync();
+    }
+
+    private async Task CargarAlimentosAsync()
+    {
+        Cargando = true;
+
+        try
+        {
+            ListaAlimentos = await AlimentoServicio.ListarAsync();
+        }
+        catch (Exception)
+        {
+            Mensaje = "No se pudieron cargar los alimentos.";
+            OperacionExitosa = false;
+        }
+        finally
+        {
+            Cargando = false;
+        }
+    }
+
+    private async Task GuardarAsync()
+    {
+        if (Guardando)
+        {
+            return;
+        }
+
+        Mensaje = "";
+
+        if (string.IsNullOrWhiteSpace(Formulario.Nombre))
+        {
+            MostrarMensaje("El nombre del alimento es obligatorio.", false);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(Formulario.Porcion))
+        {
+            MostrarMensaje("Debes indicar la porción del alimento.", false);
+            return;
+        }
+
+        if (Formulario.Calorias < 0 ||
+            Formulario.Proteinas < 0 ||
+            Formulario.Carbohidratos < 0 ||
+            Formulario.Grasas < 0 ||
+            Formulario.Fibra < 0)
+        {
+            MostrarMensaje("Los valores nutricionales no pueden ser negativos.", false);
+            return;
+        }
+
+        Guardando = true;
+
+        try
+        {
+            (bool Exito, string Mensaje) resultado;
+
+            if (Editando)
+            {
+                resultado = await AlimentoServicio.ActualizarAsync(Formulario);
+            }
+            else
+            {
+                resultado = await AlimentoServicio.RegistrarAsync(Formulario);
+            }
+
+            MostrarMensaje(resultado.Mensaje, resultado.Exito);
+
+            if (resultado.Exito)
+            {
+                LimpiarFormulario();
+                await CargarAlimentosAsync();
+            }
+        }
+        catch (Exception)
+        {
+            MostrarMensaje("Ocurrió un error al guardar el alimento.", false);
+        }
+        finally
+        {
+            Guardando = false;
+        }
+    }
+
+    private void PrepararEdicion(Alimento alimento)
+    {
+        Formulario = new Alimento
+        {
+            Id = alimento.Id,
+            Nombre = alimento.Nombre,
+            Descripcion = alimento.Descripcion,
+            Categoria = alimento.Categoria,
+            Porcion = alimento.Porcion,
+            Calorias = alimento.Calorias,
+            Proteinas = alimento.Proteinas,
+            Carbohidratos = alimento.Carbohidratos,
+            Grasas = alimento.Grasas,
+            Fibra = alimento.Fibra,
+            Estado = alimento.Estado,
+            FechaRegistro = alimento.FechaRegistro
+        };
+
+        Editando = true;
+        Mensaje = "";
+
+        IdPendienteDesactivar = 0;
+    }
+
+    private void CancelarEdicion()
+    {
+        LimpiarFormulario();
+        Mensaje = "";
+    }
+
+    private void LimpiarFormulario()
+    {
+        Formulario = new Alimento();
+        Editando = false;
+    }
+
+    private void SolicitarDesactivacion(int id)
+    {
+        IdPendienteDesactivar = id;
+    }
+
+    private void CancelarDesactivacion()
+    {
+        IdPendienteDesactivar = 0;
+    }
+
+    private async Task DesactivarAsync(int id)
+    {
+        try
+        {
+            var resultado = await AlimentoServicio.DesactivarAsync(id);
+
+            MostrarMensaje(resultado.Mensaje, resultado.Exito);
+
+            IdPendienteDesactivar = 0;
+
+            if (resultado.Exito)
+            {
+                if (Formulario.Id == id)
+                {
+                    LimpiarFormulario();
+                }
+
+                await CargarAlimentosAsync();
+            }
+        }
+        catch (Exception)
+        {
+            MostrarMensaje("No se pudo desactivar el alimento.", false);
+        }
+    }
+
+    private void MostrarMensaje(string mensaje, bool exito)
+    {
+        Mensaje = mensaje;
+        OperacionExitosa = exito;
+    }
+}
