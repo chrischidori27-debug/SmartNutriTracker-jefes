@@ -1,0 +1,305 @@
+﻿.rec-page {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem 3rem;
+    color: #f3f4f6;
+}
+
+.rec-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    color: #34d399;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.35rem 0.85rem;
+    border-radius: 999px;
+    margin-bottom: 0.85rem;
+}
+
+.rec-badge-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background-color: #10b981;
+    box-shadow: 0 0 8px #10b981;
+}
+
+.rec-header h1 {
+    font-size: 2.1rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #ffffff;
+    margin-bottom: 0.4rem;
+}
+
+    .rec-header h1 span {
+        color: #10b981;
+    }
+
+.rec-subtitle {
+    color: #9ca3af;
+    font-size: 0.95rem;
+    margin-bottom: 1.75rem;
+}
+
+/* Tarjeta oscura principal */
+.rec-panel {
+    background: linear-gradient(180deg, #11161d 0%, #0b0f14 100%);
+    border: 1px solid #1f2937;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+    margin-bottom: 1.5rem;
+}
+
+.rec-label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #9ca3af;
+    margin-bottom: 0.45rem;
+}
+
+.rec-input {
+    width: 100%;
+    background-color: #070a0e;
+    border: 1px solid #263040;
+    border-radius: 10px;
+    color: #f9fafb;
+    padding: 0.65rem 0.85rem;
+    font-size: 0.95rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+    .rec-input:focus {
+        outline: none;
+        border-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
+    }
+
+.rec-btn-primary {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #03150e;
+    font-weight: 700;
+    font-size: 0.95rem;
+    border: none;
+    border-radius: 10px;
+    padding: 0.7rem 1.5rem;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.28);
+}
+
+    .rec-btn-primary:hover {
+        filter: brightness(1.08);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 22px rgba(16, 185, 129, 0.4);
+    }
+
+    .rec-btn-primary:active {
+        transform: translateY(0);
+    }
+
+/* Tarjetas KPI de métricas */
+.rec-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.rec-kpi-card {
+    background: linear-gradient(180deg, #11161d 0%, #0b0f14 100%);
+    border: 1px solid #1f2937;
+    border-top: 3px solid #10b981;
+    border-radius: 14px;
+    padding: 1.35rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+    .rec-kpi-card.accent-blue {
+        border-top-color: #38bdf8;
+    }
+
+    .rec-kpi-card.accent-amber {
+        border-top-color: #fbbf24;
+    }
+
+.rec-kpi-tag {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #34d399;
+    margin-bottom: 0.6rem;
+}
+
+.rec-kpi-card.accent-blue .rec-kpi-tag {
+    color: #38bdf8;
+}
+
+.rec-kpi-card.accent-amber .rec-kpi-tag {
+    color: #fbbf24;
+}
+
+.rec-kpi-value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1.15;
+    margin-bottom: 0.5rem;
+}
+
+    .rec-kpi-value small {
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: #9ca3af;
+    }
+
+.rec-kpi-desc {
+    font-size: 0.86rem;
+    color: #9ca3af;
+    line-height: 1.45;
+    margin: 0;
+}
+
+/* Badges de macros */
+.rec-macros-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-top: 0.4rem;
+}
+
+.rec-pill {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid #263040;
+    border-radius: 8px;
+    padding: 0.3rem 0.65rem;
+    font-size: 0.8rem;
+    color: #d1d5db;
+}
+
+    .rec-pill strong {
+        color: #ffffff;
+    }
+
+/* Barra de progreso calórico */
+.rec-progress-wrap {
+    margin-top: 0.65rem;
+}
+
+.rec-progress-track {
+    width: 100%;
+    height: 6px;
+    background: #1f2937;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.rec-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981, #38bdf8);
+    border-radius: 999px;
+    transition: width 0.35s ease;
+}
+
+/* Tabla oscura */
+.rec-table-card {
+    background: #0d1117;
+    border: 1px solid #1f2937;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.rec-table-header {
+    padding: 1.1rem 1.5rem;
+    background: #11161d;
+    border-bottom: 1px solid #1f2937;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+    .rec-table-header h3 {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #ffffff;
+        margin: 0;
+    }
+
+.rec-table {
+    width: 100%;
+    border-collapse: collapse;
+    color: #e5e7eb;
+    font-size: 0.9rem;
+}
+
+    .rec-table th {
+        background: #090d12;
+        color: #9ca3af;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 0.85rem 1.25rem;
+        text-align: left;
+        border-bottom: 1px solid #1f2937;
+    }
+
+    .rec-table td {
+        padding: 0.95rem 1.25rem;
+        border-bottom: 1px solid #161d27;
+        vertical-align: middle;
+    }
+
+    .rec-table tbody tr:hover {
+        background-color: rgba(16, 185, 129, 0.05);
+    }
+
+    .rec-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+.rec-cat-badge {
+    display: inline-block;
+    background: rgba(56, 189, 248, 0.12);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.rec-kcal-highlight {
+    color: #34d399;
+    font-weight: 700;
+}
+
+.rec-empty-state {
+    padding: 2rem;
+    text-align: center;
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.05);
+    font-size: 0.92rem;
+}
+
+.rec-alert-error {
+    margin-top: 1rem;
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #fca5a5;
+    font-size: 0.9rem;
+}

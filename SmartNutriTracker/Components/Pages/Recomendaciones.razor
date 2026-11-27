@@ -5,110 +5,135 @@
 
 <PageTitle>Recomendaciones Inteligentes | SmartNutriTracker</PageTitle>
 
-<div class="container mt-4">
-    <h2 class="mb-3">Recomendaciones Nutricionales Inteligentes</h2>
-    <p class="text-muted">Calcula tu IMC, define tu objetivo y obtén un menú sugerido con base en los alimentos registrados.</p>
+<div class="rec-page">
 
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-2">
-                    <label class="form-label">Peso (kg)</label>
-                    <input type="number" step="0.1" class="form-control" @bind="pesoKg" />
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Altura (m o cm)</label>
-                    <input type="number" step="0.01" class="form-control" @bind="altura" />
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Edad</label>
-                    <input type="number" class="form-control" @bind="edad" />
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Sexo</label>
-                    <select class="form-select" @bind="sexo">
-                        <option value="M">Masculino</option>
-                        <option value="F">Femenino</option>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Objetivo (HU-25)</label>
-                    <select class="form-select" @bind="objetivoSeleccionado">
-                        <option value="">Automático según IMC</option>
-                        <option value="@ObjetivoNutricional.BajarPeso">Bajar de peso</option>
-                        <option value="@ObjetivoNutricional.MantenerPeso">Mantener peso</option>
-                        <option value="@ObjetivoNutricional.GanarPeso">Ganar peso / masa</option>
-                    </select>
-                </div>
+    <div class="rec-header">
+        <span class="rec-badge">
+            <span class="rec-badge-dot"></span>
+            HU-23 · HU-24 · HU-25 · HU-26 · MOTOR NUTRICIONAL
+        </span>
+        <h1>Recomendaciones Nutricionales <span>Inteligentes</span></h1>
+        <p class="rec-subtitle">
+            Calcula tu IMC, define tu objetivo físico y obtén un menú personalizado con cálculo automático de calorías y macronutrientes.
+        </p>
+    </div>
+
+    <div class="rec-panel">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-2">
+                <label class="rec-label">Peso (kg)</label>
+                <input type="number" step="0.1" class="rec-input" @bind="pesoKg" />
             </div>
-
-            <div class="mt-3">
-                <button class="btn btn-success" @onclick="CalcularAsync">
-                    Generar Menú Recomendado
-                </button>
+            <div class="col-md-2">
+                <label class="rec-label">Altura (m o cm)</label>
+                <input type="number" step="0.01" class="rec-input" @bind="altura" />
             </div>
-
-            @if (!string.IsNullOrEmpty(mensajeError))
-            {
-                <div class="alert alert-danger mt-3">@mensajeError</div>
-            }
+            <div class="col-md-2">
+                <label class="rec-label">Edad (años)</label>
+                <input type="number" class="rec-input" @bind="edad" />
+            </div>
+            <div class="col-md-2">
+                <label class="rec-label">Sexo</label>
+                <select class="rec-input" @bind="sexo">
+                    <option value="M">Masculino</option>
+                    <option value="F">Femenino</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="rec-label">Objetivo Nutricional (HU-25)</label>
+                <select class="rec-input" @bind="objetivoSeleccionado">
+                    <option value="">Automático según mi IMC</option>
+                    <option value="@ObjetivoNutricional.BajarPeso">Bajar de peso (Déficit)</option>
+                    <option value="@ObjetivoNutricional.MantenerPeso">Mantener peso (Equilibrio)</option>
+                    <option value="@ObjetivoNutricional.GanarPeso">Ganar peso / masa (Superávit)</option>
+                </select>
+            </div>
         </div>
+
+        <div class="mt-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <button class="rec-btn-primary" @onclick="CalcularAsync">
+                ★ Generar Menú Recomendado
+            </button>
+            <small class="text-secondary">
+                Basado en fórmula Mifflin-St Jeor y catálogo activo de alimentos.
+            </small>
+        </div>
+
+        @if (!string.IsNullOrEmpty(mensajeError))
+        {
+            <div class="rec-alert-error">@mensajeError</div>
+        }
     </div>
 
     @if (plan != null)
     {
-        <div class="row g-3 mb-4">
-            <div class="col-md-4">
-                <div class="card border-primary h-100">
-                    <div class="card-body">
-                        <h6 class="text-primary">Diagnóstico IMC (HU-24)</h6>
-                        <h3>@plan.Imc <small class="fs-6 text-muted">(@plan.CategoriaImc)</small></h3>
-                        <p class="small mb-0">@plan.MensajeImc</p>
+        <div class="rec-kpi-grid">
+            <!-- Tarjeta 1: IMC -->
+            <div class="rec-kpi-card accent-blue">
+                <div>
+                    <div class="rec-kpi-tag">Diagnóstico IMC · HU-24</div>
+                    <div class="rec-kpi-value">
+                        @plan.Imc.ToString("0.0") <small>(@plan.CategoriaImc)</small>
                     </div>
                 </div>
+                <p class="rec-kpi-desc">@plan.MensajeImc</p>
             </div>
-            <div class="col-md-4">
-                <div class="card border-success h-100">
-                    <div class="card-body">
-                        <h6 class="text-success">Meta Diaria (@plan.ObjetivoAplicado)</h6>
-                        <h3>@plan.CaloriasObjetivoDiario kcal</h3>
-                        <p class="small mb-0">
-                            Prot: <strong>@plan.ProteinasObjetivoGramos g</strong> |
-                            Carb: <strong>@plan.CarbohidratosObjetivoGramos g</strong> |
-                            Grasas: <strong>@plan.GrasasObjetivoGramos g</strong>
-                        </p>
+
+            <!-- Tarjeta 2: Meta diaria -->
+            <div class="rec-kpi-card">
+                <div>
+                    <div class="rec-kpi-tag">Meta Diaria · @FormatearObjetivo(plan.ObjetivoAplicado)</div>
+                    <div class="rec-kpi-value">
+                        @plan.CaloriasObjetivoDiario <small>kcal / día</small>
                     </div>
                 </div>
+                <div class="rec-macros-pills">
+                    <span class="rec-pill">Prot: <strong>@plan.ProteinasObjetivoGramos g</strong></span>
+                    <span class="rec-pill">Carb: <strong>@plan.CarbohidratosObjetivoGramos g</strong></span>
+                    <span class="rec-pill">Grasas: <strong>@plan.GrasasObjetivoGramos g</strong></span>
+                </div>
             </div>
-            <div class="col-md-4">
-                <div class="card border-info h-100">
-                    <div class="card-body">
-                        <h6 class="text-info">Aporte del Menú Sugerido (HU-26)</h6>
-                        <h3>@plan.ResumenMenuSugerido.Calorias kcal</h3>
-                        <p class="small mb-0">
-                            Prot: <strong>@plan.ResumenMenuSugerido.Proteinas g</strong> (@plan.ResumenMenuSugerido.PorcentajeProteinas%) |
-                            Carb: <strong>@plan.ResumenMenuSugerido.Carbohidratos g</strong> |
-                            Grasas: <strong>@plan.ResumenMenuSugerido.Grasas g</strong>
-                        </p>
+
+            <!-- Tarjeta 3: Aporte del menú sugerido -->
+            <div class="rec-kpi-card accent-amber">
+                <div>
+                    <div class="rec-kpi-tag">Aporte Menú Sugerido · HU-26</div>
+                    <div class="rec-kpi-value">
+                        @plan.ResumenMenuSugerido.Calorias.ToString("0") <small>kcal cubiertas</small>
+                    </div>
+                </div>
+                <div>
+                    <div class="rec-macros-pills">
+                        <span class="rec-pill">Prot: <strong>@plan.ResumenMenuSugerido.Proteinas g</strong> (@plan.ResumenMenuSugerido.PorcentajeProteinas%)</span>
+                        <span class="rec-pill">Carb: <strong>@plan.ResumenMenuSugerido.Carbohidratos g</strong></span>
+                        <span class="rec-pill">Grasas: <strong>@plan.ResumenMenuSugerido.Grasas g</strong></span>
+                    </div>
+                    <div class="rec-progress-wrap">
+                        <div class="rec-progress-track">
+                            <div class="rec-progress-fill" style="width: @(CalcularPorcentajeCobertura())%"></div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="card shadow-sm">
-            <div class="card-header bg-light">
-                <strong>Menú Saludable Sugerido (HU-23)</strong>
+        <!-- Tabla de menú sugerido -->
+        <div class="rec-table-card">
+            <div class="rec-table-header">
+                <h3>Menú Saludable Sugerido (HU-23)</h3>
+                <span class="rec-pill">@plan.MenuSugerido.Count alimento(s) seleccionado(s)</span>
             </div>
-            <div class="card-body p-0">
-                @if (plan.MenuSugerido.Count == 0)
-                {
-                    <div class="p-3 text-warning">
-                        No hay alimentos activos registrados en la base de datos para armar el menú. Registra alimentos primero en el módulo de Alimentos.
-                    </div>
-                }
-                else
-                {
-                    <table class="table table-striped mb-0">
+
+            @if (plan.MenuSugerido.Count == 0)
+            {
+                <div class="rec-empty-state">
+                    No hay alimentos activos registrados en la base de datos para armar el menú. Registra alimentos primero en el módulo de <strong>Alimentos</strong>.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="rec-table">
                         <thead>
                             <tr>
                                 <th>Alimento</th>
@@ -125,20 +150,20 @@
                             @foreach (var item in plan.MenuSugerido)
                             {
                                 <tr>
-                                    <td>@item.Nombre</td>
-                                    <td>@(item.Categoria ?? "General")</td>
+                                    <td><strong>@item.Nombre</strong></td>
+                                    <td><span class="rec-cat-badge">@(item.Categoria ?? "General")</span></td>
                                     <td>@item.Porcion</td>
-                                    <td>@item.CantidadPorciones x</td>
-                                    <td>@item.Calorias kcal</td>
-                                    <td>@item.Proteinas g</td>
-                                    <td>@item.Carbohidratos g</td>
-                                    <td>@item.Grasas g</td>
+                                    <td>@item.CantidadPorciones.ToString("0.00") x</td>
+                                    <td class="rec-kcal-highlight">@item.Calorias.ToString("0.0") kcal</td>
+                                    <td>@item.Proteinas.ToString("0.0") g</td>
+                                    <td>@item.Carbohidratos.ToString("0.0") g</td>
+                                    <td>@item.Grasas.ToString("0.0") g</td>
                                 </tr>
                             }
                         </tbody>
                     </table>
-                }
-            </div>
+                </div>
+            }
         </div>
     }
 </div>
@@ -168,5 +193,19 @@
         {
             mensajeError = ex.Message;
         }
+    }
+
+    private static string FormatearObjetivo(ObjetivoNutricional obj) => obj switch
+    {
+        ObjetivoNutricional.BajarPeso => "Bajar de peso",
+        ObjetivoNutricional.GanarPeso => "Ganar peso / masa",
+        _ => "Mantener peso"
+    };
+
+    private int CalcularPorcentajeCobertura()
+    {
+        if (plan == null || plan.CaloriasObjetivoDiario <= 0) return 0;
+        var pct = (int)Math.Round((plan.ResumenMenuSugerido.Calorias / plan.CaloriasObjetivoDiario) * 100);
+        return Math.Clamp(pct, 0, 100);
     }
 }
