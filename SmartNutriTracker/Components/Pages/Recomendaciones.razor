@@ -1,0 +1,172 @@
+﻿@page "/recomendaciones"
+@rendermode InteractiveServer
+@using SmartNutriTracker.Servicios
+@inject RecomendacionServicio RecomendacionService
+
+<PageTitle>Recomendaciones Inteligentes | SmartNutriTracker</PageTitle>
+
+<div class="container mt-4">
+    <h2 class="mb-3">Recomendaciones Nutricionales Inteligentes</h2>
+    <p class="text-muted">Calcula tu IMC, define tu objetivo y obtén un menú sugerido con base en los alimentos registrados.</p>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-2">
+                    <label class="form-label">Peso (kg)</label>
+                    <input type="number" step="0.1" class="form-control" @bind="pesoKg" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Altura (m o cm)</label>
+                    <input type="number" step="0.01" class="form-control" @bind="altura" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Edad</label>
+                    <input type="number" class="form-control" @bind="edad" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Sexo</label>
+                    <select class="form-select" @bind="sexo">
+                        <option value="M">Masculino</option>
+                        <option value="F">Femenino</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Objetivo (HU-25)</label>
+                    <select class="form-select" @bind="objetivoSeleccionado">
+                        <option value="">Automático según IMC</option>
+                        <option value="@ObjetivoNutricional.BajarPeso">Bajar de peso</option>
+                        <option value="@ObjetivoNutricional.MantenerPeso">Mantener peso</option>
+                        <option value="@ObjetivoNutricional.GanarPeso">Ganar peso / masa</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <button class="btn btn-success" @onclick="CalcularAsync">
+                    Generar Menú Recomendado
+                </button>
+            </div>
+
+            @if (!string.IsNullOrEmpty(mensajeError))
+            {
+                <div class="alert alert-danger mt-3">@mensajeError</div>
+            }
+        </div>
+    </div>
+
+    @if (plan != null)
+    {
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="card border-primary h-100">
+                    <div class="card-body">
+                        <h6 class="text-primary">Diagnóstico IMC (HU-24)</h6>
+                        <h3>@plan.Imc <small class="fs-6 text-muted">(@plan.CategoriaImc)</small></h3>
+                        <p class="small mb-0">@plan.MensajeImc</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-success h-100">
+                    <div class="card-body">
+                        <h6 class="text-success">Meta Diaria (@plan.ObjetivoAplicado)</h6>
+                        <h3>@plan.CaloriasObjetivoDiario kcal</h3>
+                        <p class="small mb-0">
+                            Prot: <strong>@plan.ProteinasObjetivoGramos g</strong> |
+                            Carb: <strong>@plan.CarbohidratosObjetivoGramos g</strong> |
+                            Grasas: <strong>@plan.GrasasObjetivoGramos g</strong>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-info h-100">
+                    <div class="card-body">
+                        <h6 class="text-info">Aporte del Menú Sugerido (HU-26)</h6>
+                        <h3>@plan.ResumenMenuSugerido.Calorias kcal</h3>
+                        <p class="small mb-0">
+                            Prot: <strong>@plan.ResumenMenuSugerido.Proteinas g</strong> (@plan.ResumenMenuSugerido.PorcentajeProteinas%) |
+                            Carb: <strong>@plan.ResumenMenuSugerido.Carbohidratos g</strong> |
+                            Grasas: <strong>@plan.ResumenMenuSugerido.Grasas g</strong>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <strong>Menú Saludable Sugerido (HU-23)</strong>
+            </div>
+            <div class="card-body p-0">
+                @if (plan.MenuSugerido.Count == 0)
+                {
+                    <div class="p-3 text-warning">
+                        No hay alimentos activos registrados en la base de datos para armar el menú. Registra alimentos primero en el módulo de Alimentos.
+                    </div>
+                }
+                else
+                {
+                    <table class="table table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th>Alimento</th>
+                                <th>Categoría</th>
+                                <th>Porción Base</th>
+                                <th>Cant. Sugerida</th>
+                                <th>Calorías</th>
+                                <th>Proteínas</th>
+                                <th>Carbohidratos</th>
+                                <th>Grasas</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in plan.MenuSugerido)
+                            {
+                                <tr>
+                                    <td>@item.Nombre</td>
+                                    <td>@(item.Categoria ?? "General")</td>
+                                    <td>@item.Porcion</td>
+                                    <td>@item.CantidadPorciones x</td>
+                                    <td>@item.Calorias kcal</td>
+                                    <td>@item.Proteinas g</td>
+                                    <td>@item.Carbohidratos g</td>
+                                    <td>@item.Grasas g</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private decimal pesoKg = 68m;
+    private decimal altura = 1.70m;
+    private int edad = 16;
+    private string sexo = "M";
+    private string objetivoSeleccionado = "";
+    private string? mensajeError;
+    private PlanRecomendacionDto? plan;
+
+    private async Task CalcularAsync()
+    {
+        mensajeError = null;
+        try
+        {
+            ObjetivoNutricional? objetivo = Enum.TryParse<ObjetivoNutricional>(objetivoSeleccionado, out var parsed)
+                ? parsed
+                : null;
+
+            plan = await RecomendacionService.GenerarRecomendacionAsync(
+                pesoKg, altura, edad, sexo, objetivo);
+        }
+        catch (Exception ex)
+        {
+            mensajeError = ex.Message;
+        }
+    }
+}

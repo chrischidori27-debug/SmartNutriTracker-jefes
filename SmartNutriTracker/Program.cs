@@ -38,6 +38,9 @@ builder.Services.AddScoped<NutricionServicio>();
 // HU-24: IMC y recomendación base
 builder.Services.AddScoped<ImcServicio>();
 
+// Equipo 5 (HU-23 a HU-26): motor de recomendaciones inteligentes
+builder.Services.AddScoped<RecomendacionServicio>();
+
 // HU-32: documento OpenAPI (Swagger)
 builder.Services.AddOpenApi();
 
@@ -98,6 +101,9 @@ app.MapStaticAssets();
 // HU-32: /openapi/v1.json y /swagger
 app.MapOpenApi();
 app.MapApiEndpoints();
+
+// Equipo 5 (HU-23 a HU-26): endpoints de recomendaciones inteligentes
+app.MapRecomendacionesEndpoints();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
