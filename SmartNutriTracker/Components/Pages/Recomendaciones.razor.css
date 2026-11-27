@@ -303,3 +303,149 @@
     color: #fca5a5;
     font-size: 0.9rem;
 }
+
+/* Alertas de Riesgo y Advertencia */
+.rec-alerts-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.rec-alert-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.9rem;
+    padding: 1rem 1.25rem;
+    border-radius: 12px;
+    border: 1px solid;
+}
+
+    .rec-alert-box.peligro {
+        background: rgba(239, 68, 68, 0.14);
+        border-color: rgba(239, 68, 68, 0.55);
+        color: #fecaca;
+    }
+
+    .rec-alert-box.advertencia {
+        background: rgba(245, 158, 11, 0.14);
+        border-color: rgba(245, 158, 11, 0.5);
+        color: #fde68a;
+    }
+
+    .rec-alert-box.info {
+        background: rgba(16, 185, 129, 0.1);
+        border-color: rgba(16, 185, 129, 0.35);
+        color: #a7f3d0;
+    }
+
+.rec-alert-icon {
+    font-size: 1.35rem;
+    line-height: 1;
+    margin-top: 0.1rem;
+}
+
+.rec-alert-title {
+    font-weight: 800;
+    font-size: 0.92rem;
+    letter-spacing: 0.02em;
+    margin-bottom: 0.2rem;
+}
+
+.rec-alert-text {
+    font-size: 0.86rem;
+    margin: 0;
+    opacity: 0.92;
+}
+
+/* Barra visual de porcentajes de Macros */
+.rec-macro-bar {
+    display: flex;
+    height: 10px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: #1f2937;
+    margin: 0.75rem 0;
+}
+
+.rec-seg-prot {
+    background: #10b981;
+}
+
+.rec-seg-carb {
+    background: #38bdf8;
+}
+
+.rec-seg-grasa {
+    background: #fbbf24;
+}
+
+/* Grid de distribución por tiempo de comida */
+.rec-meals-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.rec-meal-card {
+    background: #0e131a;
+    border: 1px solid #1f2937;
+    border-radius: 12px;
+    padding: 1.1rem;
+}
+
+.rec-meal-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.rec-meal-name {
+    font-weight: 700;
+    color: #ffffff;
+    font-size: 0.95rem;
+}
+
+.rec-meal-pct {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    font-weight: 700;
+    font-size: 0.75rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+}
+
+.rec-meal-kcal {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #38bdf8;
+    margin-bottom: 0.45rem;
+}
+
+.rec-meal-guide {
+    font-size: 0.82rem;
+    color: #9ca3af;
+    margin-top: 0.6rem;
+    margin-bottom: 0;
+    line-height: 1.4;
+}
+
+.rec-tips-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+    .rec-tips-list li {
+        background: rgba(255, 255, 255, 0.025);
+        border-left: 3px solid #10b981;
+        padding: 0.65rem 0.9rem;
+        border-radius: 0 8px 8px 0;
+        font-size: 0.88rem;
+        color: #e5e7eb;
+    }

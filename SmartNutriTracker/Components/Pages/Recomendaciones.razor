@@ -14,7 +14,7 @@
         </span>
         <h1>Recomendaciones Nutricionales <span>Inteligentes</span></h1>
         <p class="rec-subtitle">
-            Calcula tu IMC, define tu objetivo físico y obtén un menú personalizado con cálculo automático de calorías y macronutrientes.
+            Diagnóstico por IMC, alertas preventivas de salud, distribución porcentual de macronutrientes y menú personalizado.
         </p>
     </div>
 
@@ -52,10 +52,10 @@
 
         <div class="mt-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
             <button class="rec-btn-primary" @onclick="CalcularAsync">
-                ★ Generar Menú Recomendado
+                ★ Generar Plan y Diagnóstico
             </button>
             <small class="text-secondary">
-                Basado en fórmula Mifflin-St Jeor y catálogo activo de alimentos.
+                Fórmula Mifflin-St Jeor + evaluación de riesgo nutricional.
             </small>
         </div>
 
@@ -67,8 +67,24 @@
 
     @if (plan != null)
     {
+        <!-- 1. ALERTAS DE RIESGO Y ADVERTENCIAS -->
+        <div class="rec-alerts-stack">
+            @foreach (var alerta in plan.Alertas)
+            {
+                <div class="rec-alert-box @alerta.Nivel">
+                    <div class="rec-alert-icon">
+                        @(alerta.Nivel == "peligro" ? "⚠" : alerta.Nivel == "advertencia" ? "⚡" : "✔")
+                    </div>
+                    <div>
+                        <div class="rec-alert-title">@alerta.Titulo</div>
+                        <p class="rec-alert-text">@alerta.Mensaje</p>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- 2. TARJETAS KPI DE MÉTRICAS Y PORCENTAJES -->
         <div class="rec-kpi-grid">
-            <!-- Tarjeta 1: IMC -->
             <div class="rec-kpi-card accent-blue">
                 <div>
                     <div class="rec-kpi-tag">Diagnóstico IMC · HU-24</div>
@@ -79,34 +95,39 @@
                 <p class="rec-kpi-desc">@plan.MensajeImc</p>
             </div>
 
-            <!-- Tarjeta 2: Meta diaria -->
             <div class="rec-kpi-card">
                 <div>
-                    <div class="rec-kpi-tag">Meta Diaria · @FormatearObjetivo(plan.ObjetivoAplicado)</div>
+                    <div class="rec-kpi-tag">Distribución Diaria · @FormatearObjetivo(plan.ObjetivoAplicado)</div>
                     <div class="rec-kpi-value">
                         @plan.CaloriasObjetivoDiario <small>kcal / día</small>
                     </div>
+                    <div class="rec-macro-bar" title="Distribución porcentual de macronutrientes">
+                        <div class="rec-seg-prot" style="width: @(plan.PorcentajeProteinas)%"></div>
+                        <div class="rec-seg-carb" style="width: @(plan.PorcentajeCarbohidratos)%"></div>
+                        <div class="rec-seg-grasa" style="width: @(plan.PorcentajeGrasas)%"></div>
+                    </div>
                 </div>
                 <div class="rec-macros-pills">
-                    <span class="rec-pill">Prot: <strong>@plan.ProteinasObjetivoGramos g</strong></span>
-                    <span class="rec-pill">Carb: <strong>@plan.CarbohidratosObjetivoGramos g</strong></span>
-                    <span class="rec-pill">Grasas: <strong>@plan.GrasasObjetivoGramos g</strong></span>
+                    <span class="rec-pill">Prot (@plan.PorcentajeProteinas%): <strong>@plan.ProteinasObjetivoGramos g</strong></span>
+                    <span class="rec-pill">Carb (@plan.PorcentajeCarbohidratos%): <strong>@plan.CarbohidratosObjetivoGramos g</strong></span>
+                    <span class="rec-pill">Grasas (@plan.PorcentajeGrasas%): <strong>@plan.GrasasObjetivoGramos g</strong></span>
+                    <span class="rec-pill">Fibra: <strong>@plan.FibraObjetivoGramos g</strong></span>
+                    <span class="rec-pill">Agua: <strong>@plan.AguaRecomendadaLitros L</strong></span>
                 </div>
             </div>
 
-            <!-- Tarjeta 3: Aporte del menú sugerido -->
             <div class="rec-kpi-card accent-amber">
                 <div>
-                    <div class="rec-kpi-tag">Aporte Menú Sugerido · HU-26</div>
+                    <div class="rec-kpi-tag">Cobertura del Menú Sugerido · HU-26</div>
                     <div class="rec-kpi-value">
-                        @plan.ResumenMenuSugerido.Calorias.ToString("0") <small>kcal cubiertas</small>
+                        @plan.ResumenMenuSugerido.Calorias.ToString("0") <small>kcal (@CalcularPorcentajeCobertura()% de la meta)</small>
                     </div>
                 </div>
                 <div>
                     <div class="rec-macros-pills">
                         <span class="rec-pill">Prot: <strong>@plan.ResumenMenuSugerido.Proteinas g</strong> (@plan.ResumenMenuSugerido.PorcentajeProteinas%)</span>
-                        <span class="rec-pill">Carb: <strong>@plan.ResumenMenuSugerido.Carbohidratos g</strong></span>
-                        <span class="rec-pill">Grasas: <strong>@plan.ResumenMenuSugerido.Grasas g</strong></span>
+                        <span class="rec-pill">Carb: <strong>@plan.ResumenMenuSugerido.Carbohidratos g</strong> (@plan.ResumenMenuSugerido.PorcentajeCarbohidratos%)</span>
+                        <span class="rec-pill">Grasas: <strong>@plan.ResumenMenuSugerido.Grasas g</strong> (@plan.ResumenMenuSugerido.PorcentajeGrasas%)</span>
                     </div>
                     <div class="rec-progress-wrap">
                         <div class="rec-progress-track">
@@ -117,10 +138,48 @@
             </div>
         </div>
 
-        <!-- Tabla de menú sugerido -->
+        <!-- 3. DESGLOSE POR TIEMPO DE COMIDA -->
+        <div class="rec-panel">
+            <h3 class="h6 text-uppercase text-secondary fw-bold mb-3">
+                ¿Cuánto consumir en cada comida del día? (Distribución Porcentual)
+            </h3>
+            <div class="rec-meals-grid mb-0">
+                @foreach (var comida in plan.DistribucionComidas)
+                {
+                    <div class="rec-meal-card">
+                        <div class="rec-meal-head">
+                            <span class="rec-meal-name">@comida.TiempoComida</span>
+                            <span class="rec-meal-pct">@comida.PorcentajeCalorias% del día</span>
+                        </div>
+                        <div class="rec-meal-kcal">@comida.Calorias kcal</div>
+                        <div class="rec-macros-pills">
+                            <span class="rec-pill">P: <strong>@comida.ProteinasGramos g</strong></span>
+                            <span class="rec-pill">C: <strong>@comida.CarbohidratosGramos g</strong></span>
+                            <span class="rec-pill">G: <strong>@comida.GrasasGramos g</strong></span>
+                        </div>
+                        <p class="rec-meal-guide">@comida.GuiaPractica</p>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- 4. RECOMENDACIONES ESPECÍFICAS -->
+        <div class="rec-panel">
+            <h3 class="h6 text-uppercase text-secondary fw-bold mb-3">
+                Pautas Específicas para tu Perfil y Objetivo
+            </h3>
+            <ul class="rec-tips-list">
+                @foreach (var pauta in plan.RecomendacionesEspecificas)
+                {
+                    <li>@pauta</li>
+                }
+            </ul>
+        </div>
+
+        <!-- 5. TABLA DE MENÚ SUGERIDO -->
         <div class="rec-table-card">
             <div class="rec-table-header">
-                <h3>Menú Saludable Sugerido (HU-23)</h3>
+                <h3>Menú Saludable Sugerido del Catálogo (HU-23)</h3>
                 <span class="rec-pill">@plan.MenuSugerido.Count alimento(s) seleccionado(s)</span>
             </div>
 
@@ -136,11 +195,12 @@
                     <table class="rec-table">
                         <thead>
                             <tr>
+                                <th>Momento</th>
                                 <th>Alimento</th>
                                 <th>Categoría</th>
-                                <th>Porción Base</th>
-                                <th>Cant. Sugerida</th>
+                                <th>Porción</th>
                                 <th>Calorías</th>
+                                <th>Aporte Meta</th>
                                 <th>Proteínas</th>
                                 <th>Carbohidratos</th>
                                 <th>Grasas</th>
@@ -150,11 +210,12 @@
                             @foreach (var item in plan.MenuSugerido)
                             {
                                 <tr>
+                                    <td><span class="rec-pill">@item.TiempoComidaSugerido</span></td>
                                     <td><strong>@item.Nombre</strong></td>
                                     <td><span class="rec-cat-badge">@(item.Categoria ?? "General")</span></td>
-                                    <td>@item.Porcion</td>
-                                    <td>@item.CantidadPorciones.ToString("0.00") x</td>
+                                    <td>@item.CantidadPorciones.ToString("0.00") x (@item.Porcion)</td>
                                     <td class="rec-kcal-highlight">@item.Calorias.ToString("0.0") kcal</td>
+                                    <td><strong>@item.PorcentajeMetaCalorica%</strong></td>
                                     <td>@item.Proteinas.ToString("0.0") g</td>
                                     <td>@item.Carbohidratos.ToString("0.0") g</td>
                                     <td>@item.Grasas.ToString("0.0") g</td>
